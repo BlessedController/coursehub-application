@@ -1,0 +1,34 @@
+spring:
+  application:
+    name: media-stock-service
+  config:
+    activate:
+      on-profile: local
+  servlet:
+    multipart:
+      max-file-size: 40MB
+      max-request-size: 40MB
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: coursehub_rabbit_mq
+    password: 5yZ<ox6qscG0
+
+base:
+  storage:
+    location: ./uploads
+
+services:
+  identity:
+    secret-key: Z+2hXkMTIW+S3IlblVk48SRQgy31QhFu25BP84SNlSU=
+
+server:
+  port: 0
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka}
+  instance:
+    instance-id: ${spring.application.name}:${random.value}
+    prefer-ip-address: true

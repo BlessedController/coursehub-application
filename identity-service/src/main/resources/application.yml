@@ -1,0 +1,47 @@
+spring:
+  application:
+    name: identity-service
+  config:
+    activate:
+      on-profile: local
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  datasource:
+    url: jdbc:postgresql://localhost:5433/ch_ids_db
+    username: ch_ids_user
+    password: dbhunter
+    driver-class-name: org.postgresql.Driver
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: mgzlovprsnl@gmail.com
+    password: ${EMAIL_PASSWORD}
+    from: company@coursehub.com
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: coursehub_rabbit_mq
+    password: 5yZ<ox6qscG0
+
+server:
+  port: 0
+
+services:
+  identity:
+    secret-key: Z+2hXkMTIW+S3IlblVk48SRQgy31QhFu25BP84SNlSU=
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka}
+  instance:
+    instance-id: ${spring.application.name}:${random.value}
+    prefer-ip-address: true

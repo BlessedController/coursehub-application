@@ -1,0 +1,30 @@
+spring:
+  application:
+    name: rating-service
+  jpa:
+    hibernate:
+      ddl-auto: create
+    show-sql: true
+  config:
+    activate:
+      on-profile: docker
+  datasource:
+    url: jdbc:postgresql://rating_service_postgres:5432/ch_rts_db
+    username: ch_rts_user
+    password: dbhunter
+    driver-class-name: org.postgresql.Driver
+
+server:
+  port: 0
+
+services:
+  identity:
+    secret-key: Z+2hXkMTIW+S3IlblVk48SRQgy31QhFu25BP84SNlSU=
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka}
+  instance:
+    instance-id: ${spring.application.name}:${random.value}
+    prefer-ip-address: true

@@ -1,0 +1,17 @@
+services:
+
+  eureka-server:
+    container_name: eureka-server
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    ports:
+      - "8761:8761"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+    networks:
+      - coursehub_net
+
+networks:
+  coursehub-net:
+    driver: bridge
