@@ -1,0 +1,88 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.3.3'
+    id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'com.coursehub'
+version = '0.0.1-SNAPSHOT'
+description = 'Demo project for Spring Boot'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
+
+ext {
+    set('springCloudVersion', "2023.0.3")
+}
+
+dependencies {
+
+    implementation 'com.coursehub:coursehub-commons-security:1.0.0'
+
+    implementation 'com.coursehub:coursehub-commons-kafka:1.0.0'
+
+    implementation 'com.coursehub:coursehub-commons-exceptions:1.0.0'
+
+
+    //jpa
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+
+    //spring web
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+
+    //feign client
+    implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
+
+    //security
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+
+    //jwt
+    implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
+    implementation 'io.jsonwebtoken:jjwt-impl:0.11.5'
+    implementation 'io.jsonwebtoken:jjwt-jackson:0.11.5'
+
+    //jakarta validation
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+
+    //kafka
+    implementation 'org.springframework.kafka:spring-kafka'
+
+
+    // redis
+    implementation "org.redisson:redisson-spring-boot-starter:3.23.2"
+
+    // swagger
+    implementation "org.springdoc:springdoc-openapi-starter-webmvc-ui:2.0.2"
+
+    //commons io
+    implementation 'commons-io:commons-io:2.15.1'
+
+    //postgre sql
+    runtimeOnly 'org.postgresql:postgresql'
+
+    //lombok
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.security:spring-security-test'
+    testImplementation 'org.springframework.kafka:spring-kafka-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
+    }
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}

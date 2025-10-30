@@ -1,0 +1,99 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.3.3'
+    id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'com.coursehub'
+version = '0.0.1-SNAPSHOT'
+description = 'rating-service'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
+
+ext {
+    set('springCloudVersion', "2023.0.3")
+}
+
+dependencies {
+
+    // coursehub commons modules
+    implementation 'com.coursehub:coursehub-commons-kafka:1.0.0'
+    implementation 'com.coursehub:coursehub-commons-security:1.0.0'
+    implementation 'com.coursehub:coursehub-commons-exceptions:1.0.0'
+
+    // JPA and Hibernate support
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+
+    // Kafka
+    implementation 'org.springframework.kafka:spring-kafka'
+
+    // Validation
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+
+    // REST API. Web and REST controller support
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+
+    // Feign client. Feign client for inter-service communication.
+    implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
+
+    // Resilience4j for retry & circuit breaker
+    implementation 'org.springframework.cloud:spring-cloud-starter-circuitbreaker-resilience4j'
+
+    // Spring Security
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+
+    // JWT libraries
+    implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
+    implementation 'io.jsonwebtoken:jjwt-impl:0.11.5'
+    implementation 'io.jsonwebtoken:jjwt-jackson:0.11.5'
+
+    // OpenAPI/Swagger UI
+    implementation "org.springdoc:springdoc-openapi-starter-webmvc-ui:2.0.2"
+
+    // PostgreSQL JDBC driver
+    runtimeOnly 'org.postgresql:postgresql'
+
+    // Lombok annotations
+    compileOnly 'org.projectlombok:lombok'
+
+    // Lombok annotation processor
+    annotationProcessor 'org.projectlombok:lombok'
+
+    // Test
+    // Kafka test utilities
+    testImplementation 'org.springframework.kafka:spring-kafka-test'
+    // Core Spring Boot test support
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    // Spring Security test support
+    testImplementation 'org.springframework.security:spring-security-test'
+    // RabbitMQ test support
+    testImplementation 'org.springframework.amqp:spring-rabbit-test'
+    // JUnit platform launcher
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
+    }
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}

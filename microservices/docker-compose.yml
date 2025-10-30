@@ -1,0 +1,203 @@
+services:
+
+  # DATABASES-POSTGRES
+  identity_service_postgres:
+    container_name: identity_service_postgres
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: "${IDENTITY_DB}"
+      POSTGRES_USER: "${IDENTITY_USER}"
+      POSTGRES_PASSWORD: "${IDENTITY_PASS}"
+    ports:
+      - "${IDENTITY_DB_PORT}:5432"
+    volumes:
+      - identity_postgres_data:/var/lib/postgresql/data
+    networks:
+      - ${NETWORK_NAME}
+
+  course_service_postgres:
+    container_name: course_service_postgres
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: "${COURSE_DB}"
+      POSTGRES_USER: "${COURSE_USER}"
+      POSTGRES_PASSWORD: "${COURSE_PASS}"
+    ports:
+      - "${COURSE_DB_PORT}:5432"
+    volumes:
+      - course_postgres_data:/var/lib/postgresql/data
+    networks:
+      - ${NETWORK_NAME}
+
+  rating_service_postgres:
+    container_name: rating_service_postgres
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: "${RATING_DB}"
+      POSTGRES_USER: "${RATING_USER}"
+      POSTGRES_PASSWORD: "${RATING_PASS}"
+    ports:
+      - "${RATING_DB_PORT}:5432"
+    volumes:
+      - rating_postgres_data:/var/lib/postgresql/data
+    networks:
+      - ${NETWORK_NAME}
+
+  #REDIS
+  redis:
+    image: redis:latest
+    container_name: coursehub-redis
+    ports:
+      - "${REDIS_PORT}:6379"
+    networks:
+      - ${NETWORK_NAME}
+
+  #MINIO
+  minio:
+    image: minio/minio:latest
+    container_name: coursehub-minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: "${MINIO_ROOT_USER}"
+      MINIO_ROOT_PASSWORD: "${MINIO_ROOT_PASSWORD}"
+    volumes:
+      - ./data/minio:/data
+    command: server /data --console-address ":9001"
+    restart: unless-stopped
+    networks:
+      - ${NETWORK_NAME}
+
+  #ZOOKEEPER
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.0.1
+    container_name: coursehub-zookeeper
+    networks:
+      - ${NETWORK_NAME}
+    environment:
+      ZOOKEEPER_CLIENT_PORT: "${ZOOKEEPER_CLIENT_PORT}"
+      ZOOKEEPER_TICK_TIME: "${ZOOKEEPER_TICK_TIME}"
+
+  #KAFKA
+  kafka:
+    image: confluentinc/cp-kafka:7.0.1
+    container_name: coursehub-kafka
+    networks:
+      - ${NETWORK_NAME}
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: "${KAFKA_BROKER_ID}"
+      KAFKA_ZOOKEEPER_CONNECT: "${KAFKA_ZOOKEEPER_CONNECT}"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "${KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR}"
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: "${KAFKA_TRANSACTION_STATE_LOG_MIN_ISR}"
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: "${KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR}"
+      KAFKA_LISTENERS: "${KAFKA_LISTENERS}"
+      KAFKA_ADVERTISED_LISTENERS: "${KAFKA_ADVERTISED_LISTENERS}"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "${KAFKA_LISTENER_SECURITY_PROTOCOL_MAP}"
+      KAFKA_INTER_BROKER_LISTENER_NAME: "${KAFKA_INTER_BROKER_LISTENER_NAME}"
+
+  #KAFKA-UI
+  kafka-ui:
+    image: provectuslabs/kafka-ui
+    container_name: coursehub-kafka-ui
+    networks:
+      - ${NETWORK_NAME}
+    depends_on:
+      - kafka
+    ports:
+      - "${KAFKA_UI_PORT}:8080"
+    environment:
+      - KAFKA_CLUSTERS_0_NAME=coursehub_cluster
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9093
+      - KAFKA_CLUSTERS_0_ZOOKEEPER=zookeeper:2181
+
+networks:
+  coursehub-net:
+    driver: bridge
+
+
+volumes:
+  identity_postgres_data:
+  course_postgres_data:
+  rating_postgres_data:
+
+
+  #  #Microservices
+  #  identity-service:
+  #    container_name: identity-service
+  #    build:
+  #      context: ./identity-service
+  #      dockerfile: Dockerfile
+  #    ports:
+  #      - "${IDENTITY_PORT}:8081"
+  #    depends_on:
+  #      - identity_service_postgres
+  #      - kafka
+  #    environment:
+  #      SPRING_DATASOURCE_URL: jdbc:postgresql://identity_service_postgres:5432/${IDENTITY_DB}
+  #      SPRING_DATASOURCE_USERNAME: "${IDENTITY_USER}"
+  #      SPRING_DATASOURCE_PASSWORD: "${IDENTITY_PASS}"
+  #      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9093
+  #      SPRING_PROFILES_ACTIVE: docker
+  #    networks:
+  #      - ${NETWORK_NAME}
+  #  course-service:
+  #    container_name: course-service
+  #    build:
+  #      context: ./course-service
+  #      dockerfile: Dockerfile
+  #    ports:
+  #      - "${COURSE_PORT}:8082"
+  #    depends_on:
+  #      - course_service_postgres
+  #      - kafka
+  #    environment:
+  #      SPRING_DATASOURCE_URL: jdbc:postgresql://course_service_postgres:5432/${COURSE_DB}
+  #      SPRING_DATASOURCE_USERNAME: "${COURSE_USER}"
+  #      SPRING_DATASOURCE_PASSWORD: "${COURSE_PASS}"
+  #      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9093
+  #      SPRING_PROFILES_ACTIVE: docker
+  #    networks:
+  #      - ${NETWORK_NAME}
+  #
+  #  media-stock-service:
+  #    container_name: media-stock-service
+  #    build:
+  #      context: ./media-stock-service
+  #      dockerfile: Dockerfile
+  #    ports:
+  #      - "${MEDIA_STOCK_PORT}:8083"
+  #    depends_on:
+  #      - kafka
+  #      - minio
+  #    environment:
+  #      SPRING_PROFILES_ACTIVE: docker
+  #      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9093
+  #    networks:
+  #      - ${NETWORK_NAME}
+  #
+  #  rating-service:
+  #    container_name: rating-service
+  #    build:
+  #      context: ./rating-service
+  #      dockerfile: Dockerfile
+  #    ports:
+  #      - "${RATING_PORT}:8084"
+  #    depends_on:
+  #      - rating_service_postgres
+  #      - kafka
+  #    environment:
+  #      SPRING_PROFILES_ACTIVE: docker
+  #      SPRING_DATASOURCE_URL: jdbc:postgresql://rating_service_postgres:5432/${RATING_DB}
+  #      SPRING_DATASOURCE_USERNAME: "${RATING_USER}"
+  #      SPRING_DATASOURCE_PASSWORD: "${RATING_PASS}"
+  #      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9093
+  #    networks:
+  #      - ${NETWORK_NAME}
+  #
+

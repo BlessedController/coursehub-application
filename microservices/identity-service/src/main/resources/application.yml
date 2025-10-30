@@ -1,0 +1,31 @@
+spring:
+  application:
+    name: identity-service
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  datasource:
+    url: jdbc:postgresql://localhost:5433/ch_ids_db
+    username: ch_ids_user
+    password: dbhunter
+    driver-class-name: org.postgresql.Driver
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: mgzlovprsnl@gmail.com
+    password: ${EMAIL_PASSWORD}
+    from: company@coursehub.com
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+server:
+  port: 8081
+
+services:
+  identity:
+    secret-key: Z+2hXkMTIW+S3IlblVk48SRQgy31QhFu25BP84SNlSU=
