@@ -1,0 +1,115 @@
+services:
+
+  # IDENTITY-SERVICE-POSTGRES
+  identity_service_postgres:
+    container_name: identity_service_postgres
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: "${IDENTITY_DB}"
+      POSTGRES_USER: "${IDENTITY_USER}"
+      POSTGRES_PASSWORD: "${IDENTITY_PASS}"
+    ports:
+      - "${IDENTITY_DB_PORT}:5432"
+    volumes:
+      - identity_postgres_data:/var/lib/postgresql/data
+    networks:
+      - ${NETWORK_NAME}
+
+  # COURSE-SERVICE-POSTGRES
+  course_service_postgres:
+    container_name: course_service_postgres
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: "${COURSE_DB}"
+      POSTGRES_USER: "${COURSE_USER}"
+      POSTGRES_PASSWORD: "${COURSE_PASS}"
+    ports:
+      - "${COURSE_DB_PORT}:5432"
+    volumes:
+      - course_postgres_data:/var/lib/postgresql/data
+    networks:
+      - ${NETWORK_NAME}
+
+
+  #MINIO
+  minio:
+    image: minio/minio:latest
+    container_name: coursehub-minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: "${MINIO_ROOT_USER}"
+      MINIO_ROOT_PASSWORD: "${MINIO_ROOT_PASSWORD}"
+    volumes:
+      - ./data/minio:/data
+    command: server /data --console-address ":9001"
+    restart: unless-stopped
+    networks:
+      - ${NETWORK_NAME}
+
+
+  #REDIS
+  redis:
+    image: redis:latest
+    container_name: coursehub-redis
+    ports:
+      - "${REDIS_PORT}:6379"
+    networks:
+      - ${NETWORK_NAME}
+
+  #ZOOKEEPER
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.0.1
+    container_name: coursehub-zookeeper
+    networks:
+      - ${NETWORK_NAME}
+    environment:
+      ZOOKEEPER_CLIENT_PORT: "${ZOOKEEPER_CLIENT_PORT}"
+      ZOOKEEPER_TICK_TIME: "${ZOOKEEPER_TICK_TIME}"
+
+  #KAFKA
+  kafka:
+    image: confluentinc/cp-kafka:7.0.1
+    container_name: coursehub-kafka
+    networks:
+      - ${NETWORK_NAME}
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: "${KAFKA_BROKER_ID}"
+      KAFKA_ZOOKEEPER_CONNECT: "${KAFKA_ZOOKEEPER_CONNECT}"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "${KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR}"
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: "${KAFKA_TRANSACTION_STATE_LOG_MIN_ISR}"
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: "${KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR}"
+      KAFKA_LISTENERS: "${KAFKA_LISTENERS}"
+      KAFKA_ADVERTISED_LISTENERS: "${KAFKA_ADVERTISED_LISTENERS}"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "${KAFKA_LISTENER_SECURITY_PROTOCOL_MAP}"
+      KAFKA_INTER_BROKER_LISTENER_NAME: "${KAFKA_INTER_BROKER_LISTENER_NAME}"
+
+  #KAFKA-UI
+  kafka-ui:
+    image: provectuslabs/kafka-ui
+    container_name: coursehub-kafka-ui
+    networks:
+      - ${NETWORK_NAME}
+    depends_on:
+      - kafka
+    ports:
+      - "${KAFKA_UI_PORT}:8080"
+    environment:
+      - KAFKA_CLUSTERS_0_NAME=coursehub_cluster
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9093
+      - KAFKA_CLUSTERS_0_ZOOKEEPER=zookeeper:2181
+
+networks:
+  coursehub-net:
+    driver: bridge
+
+
+volumes:
+  identity_postgres_data:
+  course_postgres_data:

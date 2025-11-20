@@ -1,0 +1,53 @@
+package com.coursehub.identity_service.mapper;
+
+import com.coursehub.identity_service.dto.request.UpdateUserInfoRequest;
+import com.coursehub.identity_service.dto.response.user.PublicUserResponse;
+import com.coursehub.identity_service.dto.response.user.UserSelfResponse;
+import com.coursehub.identity_service.model.User;
+import org.springframework.util.StringUtils;
+
+public class UserMapper {
+    public static UserSelfResponse toUserSelfResponse(User user) {
+        return new UserSelfResponse(
+                user.getUsername(),
+                user.getEmail(),
+                user.getPhoneNumber(),
+                user.getUserRole(),
+                user.getFirstName(),
+                user.getLastName(),
+                user.getGender(),
+                user.getUserStatus(),
+                user.getIsVerified(),
+                user.getCreatedAt(),
+                user.getUpdatedAt()
+        );
+    }
+
+    public static PublicUserResponse toPublicUserResponse(User user) {
+
+        return new PublicUserResponse(
+                user.getId(),
+                user.getUsername(),
+                user.getEmail(),
+                user.getFirstName(),
+                user.getLastName(),
+                user.getGender()
+        );
+    }
+
+    public static User updataPublicUserInfo(User currentUser, UpdateUserInfoRequest request) {
+
+        if (StringUtils.hasText(request.firstName())) {
+            currentUser.setFirstName(request.firstName());
+        }
+        if (StringUtils.hasText(request.lastName())) {
+            currentUser.setLastName(request.lastName());
+        }
+        if (request.gender() != null) {
+            currentUser.setGender(request.gender());
+        }
+
+        return currentUser;
+    }
+
+}
