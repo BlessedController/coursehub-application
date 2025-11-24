@@ -1,0 +1,284 @@
+services:
+
+  # ==========================
+  # IDENTITY POSTGRES DEV
+  # ==========================
+  identity_service_postgres_dev:
+    container_name: identity_service_postgres_dev
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: "${IDENTITY_DEV_DB}"
+      POSTGRES_USER: "${IDENTITY_DEV_USER}"
+      POSTGRES_PASSWORD: "${IDENTITY_DEV_PASS}"
+    ports:
+      - "5432:5432"
+    volumes:
+      - identity_postgres_dev_data:/var/lib/postgresql/data
+    networks:
+      - coursehub-net
+
+  # ==========================
+  # COURSE POSTGRES DEV
+  # ==========================
+  course_service_postgres_dev:
+    container_name: course_service_postgres_dev
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: "${COURSE_DEV_DB}"
+      POSTGRES_USER: "${COURSE_DEV_USER}"
+      POSTGRES_PASSWORD: "${COURSE_DEV_PASS}"
+    ports:
+      - "5433:5432"
+    volumes:
+      - course_postgres_dev_data:/var/lib/postgresql/data
+    networks:
+      - coursehub-net
+
+  # ==========================
+  # RATING POSTGRES DEV
+  # ==========================
+  rating_service_postgres_dev:
+    container_name: rating_service_postgres_dev
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: "${RATING_DEV_DB}"
+      POSTGRES_USER: "${RATING_DEV_USER}"
+      POSTGRES_PASSWORD: "${RATING_DEV_PASS}"
+    ports:
+      - "5434:5432"
+    volumes:
+      - rating_postgres_dev_data:/var/lib/postgresql/data
+    networks:
+      - coursehub-net
+
+
+
+  # ==========================
+  # IDENTITY POSTGRES PROD
+  # ==========================
+  identity_service_postgres_prod:
+    container_name: identity_service_postgres_prod
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: "${IDENTITY_PROD_DB}"
+      POSTGRES_USER: "${IDENTITY_PROD_USER}"
+      POSTGRES_PASSWORD: "${IDENTITY_PROD_PASS}"
+    ports:
+      - "5532:5432"
+    volumes:
+      - identity_postgres_prod_data:/var/lib/postgresql/data
+    networks:
+      - coursehub-net
+
+  # ==========================
+  # COURSE POSTGRES PROD
+  # ==========================
+  course_service_postgres_prod:
+    container_name: course_service_postgres_prod
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: "${COURSE_PROD_DB}"
+      POSTGRES_USER: "${COURSE_PROD_USER}"
+      POSTGRES_PASSWORD: "${COURSE_PROD_PASS}"
+    ports:
+      - "5533:5432"
+    volumes:
+      - course_postgres_prod_data:/var/lib/postgresql/data
+    networks:
+      - coursehub-net
+
+  # ==========================
+  # RATING POSTGRES PROD
+  # ==========================
+  rating_service_postgres_prod:
+    container_name: rating_service_postgres_prod
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: "${RATING_PROD_DB}"
+      POSTGRES_USER: "${RATING_PROD_USER}"
+      POSTGRES_PASSWORD: "${RATING_PROD_PASS}"
+    ports:
+      - "5534:5432"
+    volumes:
+      - rating_postgres_prod_data:/var/lib/postgresql/data
+    networks:
+      - coursehub-net
+
+
+
+  # ==========================
+  # MINIO
+  # ==========================
+  minio:
+    image: minio/minio:latest
+    container_name: coursehub-minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: "${MINIO_ROOT_USER}"
+      MINIO_ROOT_PASSWORD: "${MINIO_ROOT_PASSWORD}"
+    volumes:
+      - ./data/minio:/data
+    command: server /data --console-address ":9001"
+    restart: unless-stopped
+    networks:
+      - coursehub-net
+
+  # ==========================
+  # REDIS
+  # ==========================
+  redis:
+    image: redis:latest
+    container_name: coursehub-redis
+    ports:
+      - "6380:6379"
+    networks:
+      - coursehub-net
+
+  # ==========================
+  # ZOOKEEPER
+  # ==========================
+  coursehub-zookeeper:
+    image: confluentinc/cp-zookeeper:7.0.1
+    container_name: coursehub-zookeeper
+    networks:
+      - coursehub-net
+    environment:
+      ZOOKEEPER_CLIENT_PORT: "${ZOOKEEPER_CLIENT_PORT}"
+      ZOOKEEPER_TICK_TIME: "${ZOOKEEPER_TICK_TIME}"
+
+  # ==========================
+  # KAFKA
+  # ==========================
+  coursehub-kafka:
+    image: confluentinc/cp-kafka:7.0.1
+    container_name: coursehub-kafka
+    networks:
+      - coursehub-net
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    depends_on:
+      - coursehub-zookeeper
+    environment:
+      KAFKA_BROKER_ID: "${KAFKA_BROKER_ID}"
+      KAFKA_ZOOKEEPER_CONNECT: "${KAFKA_ZOOKEEPER_CONNECT}"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "${KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR}"
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: "${KAFKA_TRANSACTION_STATE_LOG_MIN_ISR}"
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: "${KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR}"
+      KAFKA_LISTENERS: "${KAFKA_LISTENERS}"
+      KAFKA_ADVERTISED_LISTENERS: "${KAFKA_ADVERTISED_LISTENERS}"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "${KAFKA_LISTENER_SECURITY_PROTOCOL_MAP}"
+      KAFKA_INTER_BROKER_LISTENER_NAME: "${KAFKA_INTER_BROKER_LISTENER_NAME}"
+
+  # ==========================
+  # KAFKA UI
+  # ==========================
+  coursehub-kafka-ui:
+    image: provectuslabs/kafka-ui
+    container_name: coursehub-kafka-ui
+    networks:
+      - coursehub-net
+    depends_on:
+      - coursehub-kafka
+    ports:
+      - "7777:8080"
+    environment:
+      - KAFKA_CLUSTERS_0_NAME=coursehub_cluster
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=coursehub-kafka:9093
+      - KAFKA_CLUSTERS_0_ZOOKEEPER=coursehub-zookeeper:2181
+
+
+
+  # ==========================
+  # API GATEWAY
+  # ==========================
+  api-gateway:
+    build:
+      context: ./microservices/api-gateway
+      dockerfile: Dockerfile
+    image: api-gateway-ms:1.0
+    container_name: api-gateway-ms
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+    ports:
+      - "8080:8080"
+    networks:
+      - coursehub-net
+
+  # ==========================
+  # IDENTITY SERVICE
+  # ==========================
+  identity-ms:
+    build:
+      context: ./microservices/identity-service
+      dockerfile: Dockerfile
+    image: identity-ms:1.0
+    container_name: identity-ms
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+    ports:
+      - "8081:8080"
+    networks:
+      - coursehub-net
+
+  # ==========================
+  # COURSE SERVICE
+  # ==========================
+  course-service:
+    build:
+      context: ./microservices/course-service
+      dockerfile: Dockerfile
+    image: course-ms:1.0
+    container_name: course-ms
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+    ports:
+      - "8082:8080"
+    networks:
+      - coursehub-net
+
+  # ==========================
+  # RATING SERVICE
+  # ==========================
+  rating-service:
+    build:
+      context: ./microservices/rating-service
+      dockerfile: Dockerfile
+    image: rating-ms:1.0
+    container_name: rating-ms
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+    ports:
+      - "8084:8080"
+    networks:
+      - coursehub-net
+
+  # ==========================
+  # MEDIA STOCK SERVICE
+  # ==========================
+  media-stock-service:
+    build:
+      context: ./microservices/media-stock-service
+      dockerfile: Dockerfile
+    image: media-ms:1.0
+    container_name: media-stock-ms
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+    ports:
+      - "8083:8080"
+    networks:
+      - coursehub-net
+
+networks:
+  coursehub-net:
+    driver: bridge
+
+volumes:
+  identity_postgres_dev_data:
+  course_postgres_dev_data:
+  rating_postgres_dev_data:
+  identity_postgres_prod_data:
+  course_postgres_prod_data:
+  rating_postgres_prod_data:

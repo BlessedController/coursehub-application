@@ -1,0 +1,14 @@
+
+
+
+
+course-service:
+  public-base-url: /v1/api/courses/public
+  admin-base-url: /v1/api/courses/admin
+  internal-base-url: /v1/api/courses/internal
+  creator-base-url: /v1/api/courses/creator
+  categories-base-url: /v1/api/courses/categories
+  client:
+    identity-service:
+      host: localhost:8081
+      internal-controller-url: /v1/api/users/internal

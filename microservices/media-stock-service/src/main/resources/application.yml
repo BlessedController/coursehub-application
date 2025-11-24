@@ -1,0 +1,29 @@
+spring:
+  application:
+    name: media-stock-service
+  servlet:
+    multipart:
+      max-file-size: 40MB
+      max-request-size: 40MB
+
+jwt:
+  secret-key: Z+2hXkMTIW+S3IlblVk48SRQgy31QhFu25BP84SNlSU=
+
+server:
+  port: 8083
+
+minio:
+  profile-photo-bucket: user-profile-photos
+  course-videos-bucket: course-videos
+  url: http://localhost:9000
+  access-key: root_user
+  secret-key: root_pass
+
+
+media-stock-service:
+  photo-base-url: /v1/api/media/photo
+  video-base-url: /v1/api/media/video
+  client:
+    course-service:
+      host: localhost:8082
+      internal-controller-url: /v1/api/courses/internal

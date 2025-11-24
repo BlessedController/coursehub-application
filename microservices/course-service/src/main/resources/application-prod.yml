@@ -1,0 +1,40 @@
+spring:
+  application:
+    name: course-service
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  datasource:
+    url: jdbc:postgresql://course_service_postgres_prod:5432/ch_cs_prod_db
+    username: ch_cs_prod_user
+    password: dbhunter_prod
+    driver-class-name: org.postgresql.Driver
+  data:
+    web:
+      pageable:
+        max-page-size: 20
+        default-page-size: 10
+        page-parameter: page
+        size-parameter: size
+        one-indexed-parameters: true
+
+server:
+  port: 8082
+
+services:
+  identity:
+    secret-key: Z+2hXkMTIW+S3IlblVk48SRQgy31QhFu25BP84SNlSU=
+
+course:
+  courses:
+    popular:
+      min-rating: 4.5
+    recent:
+      days: 10
+
+redis:
+  server:
+    url: redis://localhost:6380
+
+
