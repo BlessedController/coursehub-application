@@ -1,0 +1,27 @@
+spring:
+  servlet:
+    multipart:
+      max-file-size: 40MB
+      max-request-size: 40MB
+
+
+minio:
+  profile-photo-bucket: user-profile-photos
+  course-videos-bucket: course-videos
+  url: http://coursehub-minio:9000
+  access-key: root_user
+  secret-key: root_pass
+
+
+media-stock-service:
+  client:
+    course-service:
+      host: http://course-ms:8082
+      internal-controller-url: /v1/api/courses/internal
+    enrollment-service:
+      host: http://enrollment-ms:8084
+      internal-controller-url: /v1/api/enrollments/internal
+
+redis:
+  server:
+    url: redis://coursehub-redis:6380

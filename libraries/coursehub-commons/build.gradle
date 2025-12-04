@@ -1,0 +1,50 @@
+plugins {
+	id 'java'
+	id 'maven-publish'
+}
+
+group = 'com.coursehub'
+version = '1.0.0'
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(21)
+	}
+
+	withSourcesJar()
+	withJavadocJar()
+}
+
+dependencies {
+
+	implementation 'org.springframework:spring-web:6.1.4'
+
+	// 🔐 Spring Security
+	implementation 'org.springframework.boot:spring-boot-starter-security:3.3.3'
+
+	// 🌐 Servlet + Web (HttpServletRequest, FilterChain, HandlerExceptionResolver)
+	implementation 'org.springframework.boot:spring-boot-starter-web:3.3.3'
+
+	// 🔑 JWT (JSON Web Token)
+	implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
+	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
+	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
+
+	// ⚙️ Spring Boot Auto Configuration support
+	implementation 'org.springframework.boot:spring-boot-autoconfigure:3.3.3'
+}
+
+repositories {
+	mavenCentral()
+}
+
+publishing {
+	publications {
+		create("mavenJava", MavenPublication) {
+			from(components.java)
+			groupId = 'com.coursehub'
+			artifactId = 'commons'
+			version = '1.0.0'
+		}
+	}
+}

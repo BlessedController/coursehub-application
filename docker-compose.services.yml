@@ -1,0 +1,87 @@
+services:
+
+  api-gateway-ms:
+    build:
+      context: ./microservices/api-gateway
+      dockerfile: Dockerfile
+    image: api-gateway-ms:1.0
+    container_name: api-gateway-ms
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+    ports:
+      - "8080:8080"
+    networks:
+      - coursehub-net
+
+  identity-ms:
+    build:
+      context: ./microservices/identity-service
+      dockerfile: Dockerfile
+    image: identity-ms:1.0
+    container_name: identity-ms
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+    ports:
+      - "8081:8080"
+    networks:
+      - coursehub-net
+
+  course-ms:
+    build:
+      context: ./microservices/course-service
+      dockerfile: Dockerfile
+    image: course-ms:1.0
+    container_name: course-ms
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+    ports:
+      - "8082:8080"
+    networks:
+      - coursehub-net
+
+
+
+  media-stock-ms:
+    build:
+      context: ./microservices/media-stock-service
+      dockerfile: Dockerfile
+    image: media-ms:1.0
+    container_name: media-stock-ms
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+    ports:
+      - "8083:8080"
+    networks:
+      - coursehub-net
+
+
+  enrollment-ms:
+    build:
+      context: ./microservices/enrollment-service
+      dockerfile: Dockerfile
+    image: enrollment-ms:1.0
+    container_name: enrollment-ms
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+    ports:
+      - "8084:8080"
+    networks:
+      - coursehub-net
+
+
+  rating-ms:
+    build:
+      context: ./microservices/rating-service
+      dockerfile: Dockerfile
+    image: rating-ms:1.0
+    container_name: rating-ms
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+    ports:
+      - "8085:8080"
+    networks:
+      - coursehub-net
+
+networks:
+  coursehub-net:
+    external: true

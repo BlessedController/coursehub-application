@@ -1,0 +1,61 @@
+services:
+
+  identity_service_postgres_prod:
+    container_name: identity_service_postgres_prod
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: "${IDENTITY_PROD_DB}"
+      POSTGRES_USER: "${IDENTITY_PROD_USER}"
+      POSTGRES_PASSWORD: "${IDENTITY_PROD_PASS}"
+    ports:
+      - "5532:5432"
+    volumes:
+      - identity_postgres_prod_data:/var/lib/postgresql/data
+    networks:
+      - coursehub-net
+
+  course_service_postgres_prod:
+    container_name: course_service_postgres_prod
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: "${COURSE_PROD_DB}"
+      POSTGRES_USER: "${COURSE_PROD_USER}"
+      POSTGRES_PASSWORD: "${COURSE_PROD_PASS}"
+    ports:
+      - "5533:5432"
+    volumes:
+      - course_postgres_prod_data:/var/lib/postgresql/data
+    networks:
+      - coursehub-net
+
+  enrollment_service_postgres_prod:
+    container_name: enrollment_service_postgres_prod
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: "${ENROLLMENT_PROD_DB}"
+      POSTGRES_USER: "${ENROLLMENT_PROD_USER}"
+      POSTGRES_PASSWORD: "${ENROLLMENT_PROD_PASS}"
+    ports:
+      - "5534:5432"
+    volumes:
+      - enrollment_postgres_prod_data:/var/lib/postgresql/data
+    networks:
+      - coursehub-net
+
+  rating_service_postgres_prod:
+    container_name: rating_service_postgres_prod
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: "${RATING_PROD_DB}"
+      POSTGRES_USER: "${RATING_PROD_USER}"
+      POSTGRES_PASSWORD: "${RATING_PROD_PASS}"
+    ports:
+      - "5535:5432"
+    volumes:
+      - rating_postgres_prod_data:/var/lib/postgresql/data
+    networks:
+      - coursehub-net
+
+networks:
+  coursehub-net:
+    external: true

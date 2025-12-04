@@ -1,0 +1,22 @@
+spring:
+
+  jpa:
+    hibernate:
+      ddl-auto: create
+    show-sql: true
+
+  datasource:
+    url: jdbc:postgresql://rating_service_postgres_prod:5432/ch_rts_prdo_db
+    username: ch_rts_prod_user
+    password: dbhunter_prod
+    driver-class-name: org.postgresql.Driver
+
+
+rating-service:
+  client:
+    identity-service:
+      host: identity-ms:8081
+      internal-controller-url: /v1/api/users/internal
+    course-service:
+      host: course-ms:8082
+      internal-controller-url: /v1/api/courses/internal

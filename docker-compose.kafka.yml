@@ -1,0 +1,49 @@
+services:
+
+  coursehub-zookeeper:
+    image: confluentinc/cp-zookeeper:7.0.1
+    container_name: coursehub-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: "${ZOOKEEPER_CLIENT_PORT}"
+      ZOOKEEPER_TICK_TIME: "${ZOOKEEPER_TICK_TIME}"
+    networks:
+      - coursehub-net
+
+  coursehub-kafka:
+    image: confluentinc/cp-kafka:7.0.1
+    container_name: coursehub-kafka
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    depends_on:
+      - coursehub-zookeeper
+    environment:
+      KAFKA_BROKER_ID: "${KAFKA_BROKER_ID}"
+      KAFKA_ZOOKEEPER_CONNECT: "${KAFKA_ZOOKEEPER_CONNECT}"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "${KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR}"
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: "${KAFKA_TRANSACTION_STATE_LOG_MIN_ISR}"
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: "${KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR}"
+      KAFKA_LISTENERS: "${KAFKA_LISTENERS}"
+      KAFKA_ADVERTISED_LISTENERS: "${KAFKA_ADVERTISED_LISTENERS}"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "${KAFKA_LISTENER_SECURITY_PROTOCOL_MAP}"
+      KAFKA_INTER_BROKER_LISTENER_NAME: "${KAFKA_INTER_BROKER_LISTENER_NAME}"
+    networks:
+      - coursehub-net
+
+  coursehub-kafka-ui:
+    image: provectuslabs/kafka-ui
+    container_name: coursehub-kafka-ui
+    depends_on:
+      - coursehub-kafka
+    ports:
+      - "7777:8080"
+    environment:
+      - KAFKA_CLUSTERS_0_NAME=coursehub_cluster
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=coursehub-kafka:9093
+      - KAFKA_CLUSTERS_0_ZOOKEEPER=coursehub-zookeeper:2181
+    networks:
+      - coursehub-net
+
+networks:
+  coursehub-net:
+    external: true

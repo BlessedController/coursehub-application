@@ -1,0 +1,29 @@
+spring:
+
+  config:
+    activate:
+      on-profile: dev
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+  datasource:
+    url: jdbc:postgresql://localhost:5433/ch_cs_dev_db
+    username: ch_cs_dev_user
+    password: dbhunter_dev
+    driver-class-name: org.postgresql.Driver
+
+redis:
+  server:
+    url: redis://localhost:6380
+
+kafka:
+  bootstrap-servers: localhost:9092
+
+course-service:
+  client:
+    identity-service:
+      host: http://localhost:8081
+      internal-controller-url: /v1/api/users/internal

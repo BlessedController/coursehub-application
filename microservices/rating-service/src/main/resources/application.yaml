@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: rating-service
+
+server:
+  port: 8085
+
+jwt:
+  user-secret-key: ${JWT_USER_SECRET_KEY}
+  internal-secret-key: ${JWT_INTERNAL_SECRET_KEY}
+
+rating-service:
+  course-rating-base-url: /v1/api/ratings/course
+  content-creator-rating-base-url: /v1/api/ratings/content-creator

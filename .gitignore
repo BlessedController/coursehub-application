@@ -1,0 +1,8 @@
+### idea ###
+.idea
+
+### minio data ###
+data
+
+### env ###
+.env

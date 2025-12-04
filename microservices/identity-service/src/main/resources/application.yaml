@@ -1,0 +1,47 @@
+spring:
+
+  application:
+    name: identity-service
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    from: ${MAIL_FROM}
+
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope:
+              - openid
+              - profile
+              - email
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+        provider:
+          google:
+            issuer-uri: https://accounts.google.com
+
+
+
+identity-service:
+  admin-base-url: /v1/api/users/admin
+  public-base-url: /v1/api/users/public
+  auth-base-url: /v1/api/users/auth
+  self-base-url: /v1/api/users/self
+  internal-base-url: /v1/api/users/internal
+  frontend-host: my-frontend.com
+
+
+jwt:
+  user-secret-key: ${JWT_USER_SECRET_KEY}
+  internal-secret-key: ${JWT_INTERNAL_SECRET_KEY}
+
+
+
+server:
+  port: 8081

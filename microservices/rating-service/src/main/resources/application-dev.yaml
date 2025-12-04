@@ -1,0 +1,23 @@
+spring:
+
+  jpa:
+    hibernate:
+      ddl-auto: create
+    show-sql: true
+
+  datasource:
+    url: jdbc:postgresql://localhost:5435/ch_rts_dev_db
+    username: ch_rts_dev_user
+    password: dbhunter_dev
+    driver-class-name: org.postgresql.Driver
+
+
+
+rating-service:
+  client:
+    identity-service:
+      host: localhost:8081
+      internal-controller-url: /v1/api/users/internal
+    course-service:
+      host: localhost:8082
+      internal-controller-url: /v1/api/courses/internal

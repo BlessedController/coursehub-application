@@ -1,0 +1,61 @@
+services:
+
+  identity_service_postgres_dev:
+    container_name: identity_service_postgres_dev
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: "${IDENTITY_DEV_DB}"
+      POSTGRES_USER: "${IDENTITY_DEV_USER}"
+      POSTGRES_PASSWORD: "${IDENTITY_DEV_PASS}"
+    ports:
+      - "5432:5432"
+    volumes:
+      - identity_postgres_dev_data:/var/lib/postgresql/data
+    networks:
+      - coursehub-net
+
+  course_service_postgres_dev:
+    container_name: course_service_postgres_dev
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: "${COURSE_DEV_DB}"
+      POSTGRES_USER: "${COURSE_DEV_USER}"
+      POSTGRES_PASSWORD: "${COURSE_DEV_PASS}"
+    ports:
+      - "5433:5432"
+    volumes:
+      - course_postgres_dev_data:/var/lib/postgresql/data
+    networks:
+      - coursehub-net
+
+  enrollment_service_postgres_dev:
+    container_name: enrollment_service_postgres_dev
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: "${ENROLLMENT_DEV_DB}"
+      POSTGRES_USER: "${ENROLLMENT_DEV_USER}"
+      POSTGRES_PASSWORD: "${ENROLLMENT_DEV_PASS}"
+    ports:
+      - "5434:5432"
+    volumes:
+      - enrollment_postgres_dev_data:/var/lib/postgresql/data
+    networks:
+      - coursehub-net
+
+  rating_service_postgres_dev:
+    container_name: rating_service_postgres_dev
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: "${RATING_DEV_DB}"
+      POSTGRES_USER: "${RATING_DEV_USER}"
+      POSTGRES_PASSWORD: "${RATING_DEV_PASS}"
+    ports:
+      - "5435:5432"
+    volumes:
+      - rating_postgres_dev_data:/var/lib/postgresql/data
+    networks:
+      - coursehub-net
+
+networks:
+  coursehub-net:
+    external: true

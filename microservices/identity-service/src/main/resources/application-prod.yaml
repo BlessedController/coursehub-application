@@ -1,0 +1,23 @@
+spring:
+
+  config:
+    activate:
+      on-profile: prod
+
+  jpa:
+    hibernate:
+      ddl-auto: create
+    show-sql: true
+
+  datasource:
+    url: jdbc:postgresql://identity_service_postgres_prod:5432/ch_ids_prod_db
+    username: ch_ids_prod_user
+    password: dbhunter_prod
+    driver-class-name: org.postgresql.Driver
+
+kafka:
+  bootstrap-servers: coursehub-kafka:9092
+
+
+
+
