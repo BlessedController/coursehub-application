@@ -8,6 +8,7 @@ course-service:
   internal-base-url: /v1/api/courses/internal
   creator-base-url: /v1/api/courses/creator
   categories-base-url: /v1/api/courses/categories
+  video-base-url: /v1/api/courses/videos
 
 server:
   port: 8082

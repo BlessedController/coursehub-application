@@ -4,8 +4,11 @@ import com.coursehub.enrollment_service.model.Enrollment;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
+import java.util.List;
+
 public interface EnrollmentRepository extends JpaRepository<Enrollment, String>, JpaSpecificationExecutor<Enrollment> {
 
     boolean existsByCourseIdAndUserId(String s, String id);
 
+    List<Enrollment> findAllByUserId(String userId);
 }

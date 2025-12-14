@@ -35,6 +35,26 @@ public class KafkaConsumerConfig {
     }
 
     @Bean
+    public ConsumerFactory<String, AddProfilePictureToCourseEvent> addCourseProfilePhotoConsumerFactory() {
+        return new DefaultKafkaConsumerFactory<>(getConfig(), new StringDeserializer(), buildDeserializer(AddProfilePictureToCourseEvent.class));
+    }
+
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, AddProfilePictureToCourseEvent> kafkaAddCourseProfilePhotoListenerContainerFactory() {
+        return buildFactory(AddProfilePictureToCourseEvent.class);
+    }
+
+    @Bean
+    public ConsumerFactory<String, AddProfilePictureToVideoEvent> addVideoProfilePhotoConsumerFactory() {
+        return new DefaultKafkaConsumerFactory<>(getConfig(), new StringDeserializer(), buildDeserializer(AddProfilePictureToVideoEvent.class));
+    }
+
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, AddProfilePictureToVideoEvent> kafkaAddVideoProfilePhotoListenerContainerFactory() {
+        return buildFactory(AddProfilePictureToVideoEvent.class);
+    }
+
+    @Bean
     public ConsumerFactory<String, DeleteVideoFromCourseEvent> deleteVideoConsumerFactory() {
         return new DefaultKafkaConsumerFactory<>(getConfig(), new StringDeserializer(), buildDeserializer(DeleteVideoFromCourseEvent.class));
     }

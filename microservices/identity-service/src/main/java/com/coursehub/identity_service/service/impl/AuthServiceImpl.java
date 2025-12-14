@@ -17,8 +17,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
-import org.springframework.security.authentication.AuthenticationProvider;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.authentication.*;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -36,6 +35,7 @@ import static com.coursehub.commons.security.model.UserRole.*;
 import static com.coursehub.commons.security.model.UserStatus.*;
 import static com.coursehub.identity_service.constants.JwtTokenConstants.ACCESS_TOKEN_EXPIRATION;
 import static com.coursehub.identity_service.constants.JwtTokenConstants.REFRESH_TOKEN_EXPIRATION;
+import static java.lang.Boolean.FALSE;
 import static java.lang.Boolean.TRUE;
 import static org.springframework.util.StringUtils.hasText;
 
@@ -65,17 +65,29 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public TokenResponse login(LoginRequest request, HttpServletResponse response) {
-        UsernamePasswordAuthenticationToken auth =
-                new UsernamePasswordAuthenticationToken(request.identifier(), request.password());
-        Authentication authentication = authenticationProvider.authenticate(auth);
-        SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
-        String accessToken = jwtServiceUserAccessToken.generateAccessToken(principal, ACCESS_TOKEN_EXPIRATION);
-        String refreshToken = jwtServiceUserRefreshToken.generateRefreshToken(principal, REFRESH_TOKEN_EXPIRATION);
+        String accessToken = "";
+        String refreshToken = "";
 
-        this.createCookie(accessToken, refreshToken, response);
+        try {
 
+            UsernamePasswordAuthenticationToken auth =
+                    new UsernamePasswordAuthenticationToken(request.identifier(), request.password());
+
+            Authentication authentication = authenticationProvider.authenticate(auth);
+
+
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+
+            UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+            accessToken = jwtServiceUserAccessToken.generateAccessToken(principal, ACCESS_TOKEN_EXPIRATION);
+            refreshToken = jwtServiceUserRefreshToken.generateRefreshToken(principal, REFRESH_TOKEN_EXPIRATION);
+
+            this.createCookie(accessToken, refreshToken, response);
+
+        } catch (BadCredentialsException e) {
+            throw new LoginException("Bad Credentials");
+        }
         return TokenResponse.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
@@ -148,27 +160,31 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public void getVerifyMail(UserPrincipal principal) {
         User currentUser = this.findUserByIdAndUserStatusInAndUserRoleIn(principal.getId(), Set.of(ACTIVE), Set.of(ROLE_USER, ROLE_CONTENT_CREATOR));
+
         if (TRUE.equals(currentUser.getIsVerified())) {
             throw new InvalidRequestException("User is already verified");
         }
+
+        String activationCode = UUID.randomUUID().toString();
+
+        currentUser.setActivationCode(activationCode);
+
+        userRepository.save(currentUser);
+
         emailService.sendVerifyingEmail(currentUser.getEmail(), currentUser.getActivationCode());
     }
 
     @Override
-    public void verify(UserPrincipal principal, String activationCode) {
-        User userByActivationCode = userRepository.findByActivationCode(activationCode)
-                .orElseThrow(() -> new NotFoundException("User with activation code " + activationCode + " not found"));
+    public void verify(String activationCode) {
 
-        User currentUser = this.findUserByIdAndUserStatusInAndUserRoleIn(principal.getId(), Set.of(ACTIVE), Set.of(ROLE_USER, ROLE_CONTENT_CREATOR));
+        User user = userRepository.findByActivationCodeAndIsVerified(activationCode, FALSE)
+                .orElseThrow(() -> new NotFoundException("Invalid or expired activation link"));
 
-        if (!userByActivationCode.getId().equals(currentUser.getId())) {
-            throw new InvalidRequestException("Invalid activation code");
-        }
+        user.setIsVerified(TRUE);
 
-        currentUser.setIsVerified(TRUE);
+        user.setActivationCode(null);
 
-        currentUser.setActivationCode(UUID.randomUUID().toString());
-        userRepository.save(currentUser);
+        userRepository.save(user);
     }
 
     @Override
@@ -193,19 +209,22 @@ public class AuthServiceImpl implements AuthService {
         }
 
         currentUser.setPassword(passwordEncoder.encode(request.password()));
+
         userRepository.save(currentUser);
     }
 
     @Override
     public void sendResetPasswordCode(SendResetPasswordCodeRequest request) {
 
-        User user = userRepository.findByEmailAndUserStatus(request.email(), UserStatus.ACTIVE).orElse(null);
+        User user = userRepository.findByEmailAndUserStatusIn(request.email(), Set.of(ACTIVE, SUSPENDED)).orElse(null);
 
         if (user == null) return;
 
         String tempResetCode = UUID.randomUUID().toString();
 
-        user.setTempCode(tempResetCode);
+        String encodedResetCode = passwordEncoder.encode(tempResetCode);
+
+        user.setTempCode(encodedResetCode);
 
         user.setTempCodeExpiresAt(LocalDateTime.now().plusMinutes(10));
 
@@ -215,13 +234,13 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public void resetForgottenPassword(ForgottenPasswordResetRequest request) {
+    public void resetForgottenPassword(ForgottenPasswordResetRequest request, HttpServletResponse response) {
 
-        User user = userRepository.findByEmailAndUserStatus(request.email(), UserStatus.ACTIVE).orElse(null);
+        User user = userRepository.findByEmailAndUserStatusIn(request.email(), Set.of(ACTIVE, SUSPENDED)).orElse(null);
 
         if (user == null) return;
 
-        if (!request.resetCode().equals(user.getTempCode())) {
+        if (!passwordEncoder.matches(request.resetCode(), user.getTempCode())) {
             throw new InvalidRequestException("Invalid reset code");
         }
 
@@ -241,6 +260,7 @@ public class AuthServiceImpl implements AuthService {
 
         userRepository.save(user);
 
+        this.logout(response);
     }
 
     @Override

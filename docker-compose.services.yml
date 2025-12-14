@@ -6,8 +6,6 @@ services:
       dockerfile: Dockerfile
     image: api-gateway-ms:1.0
     container_name: api-gateway-ms
-    environment:
-      SPRING_PROFILES_ACTIVE: prod
     ports:
       - "8080:8080"
     networks:
@@ -21,8 +19,16 @@ services:
     container_name: identity-ms
     environment:
       SPRING_PROFILES_ACTIVE: prod
+      JWT_USER_SECRET_KEY: "${JWT_USER_SECRET_KEY}"
+      JWT_INTERNAL_SECRET_KEY: "${JWT_INTERNAL_SECRET_KEY}"
+      GOOGLE_CLIENT_ID: "${GOOGLE_CLIENT_ID}"
+      GOOGLE_CLIENT_SECRET: "${GOOGLE_CLIENT_SECRET}"
+      MAIL_FROM: "${MAIL_FROM}"
+      MAIL_PASSWORD: "${MAIL_PASSWORD}"
+      MAIL_USERNAME: "${MAIL_USERNAME}"
+
     ports:
-      - "8081:8080"
+      - "8081:8081"
     networks:
       - coursehub-net
 
@@ -34,12 +40,12 @@ services:
     container_name: course-ms
     environment:
       SPRING_PROFILES_ACTIVE: prod
+      JWT_USER_SECRET_KEY: "${JWT_USER_SECRET_KEY}"
+      JWT_INTERNAL_SECRET_KEY: "${JWT_INTERNAL_SECRET_KEY}"
     ports:
-      - "8082:8080"
+      - "8082:8082"
     networks:
       - coursehub-net
-
-
 
   media-stock-ms:
     build:
@@ -49,8 +55,10 @@ services:
     container_name: media-stock-ms
     environment:
       SPRING_PROFILES_ACTIVE: prod
+      JWT_USER_SECRET_KEY: "${JWT_USER_SECRET_KEY}"
+      JWT_INTERNAL_SECRET_KEY: "${JWT_INTERNAL_SECRET_KEY}"
     ports:
-      - "8083:8080"
+      - "8083:8083"
     networks:
       - coursehub-net
 
@@ -63,8 +71,10 @@ services:
     container_name: enrollment-ms
     environment:
       SPRING_PROFILES_ACTIVE: prod
+      JWT_USER_SECRET_KEY: "${JWT_USER_SECRET_KEY}"
+      JWT_INTERNAL_SECRET_KEY: "${JWT_INTERNAL_SECRET_KEY}"
     ports:
-      - "8084:8080"
+      - "8084:8084"
     networks:
       - coursehub-net
 
@@ -77,8 +87,25 @@ services:
     container_name: rating-ms
     environment:
       SPRING_PROFILES_ACTIVE: prod
+      JWT_USER_SECRET_KEY: "${JWT_USER_SECRET_KEY}"
+      JWT_INTERNAL_SECRET_KEY: "${JWT_INTERNAL_SECRET_KEY}"
     ports:
-      - "8085:8080"
+      - "8085:8085"
+    networks:
+      - coursehub-net
+
+  payment-ms:
+    build:
+      context: ./microservices/payment-service
+      dockerfile: Dockerfile
+    image: payment-ms:1.0
+    container_name: payment-ms
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      JWT_USER_SECRET_KEY: "${JWT_USER_SECRET_KEY}"
+      JWT_INTERNAL_SECRET_KEY: "${JWT_INTERNAL_SECRET_KEY}"
+    ports:
+      - "8086:8086"
     networks:
       - coursehub-net
 

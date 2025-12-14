@@ -18,7 +18,7 @@ public class InternalController {
 
 
     //MEDIA STOCK
-    @GetMapping("/owner-check/{courseId}/{userId}")
+    @GetMapping("/course-owner-check/{courseId}/{userId}")
     ResponseEntity<Boolean> isUserOwnerOfCourse(
             @PathVariable String courseId,
             @PathVariable String userId
@@ -26,6 +26,12 @@ public class InternalController {
     ) {
         Boolean isOwner = interalService.isUserOwnerOfCourse(courseId, userId);
         return status(OK).body(isOwner);
+    }
+
+    @GetMapping("/video-owner-check/{videoId}/{userId}")
+    ResponseEntity<Boolean> isUserOwnerOfVideo(@PathVariable String videoId, @PathVariable String userId) {
+        Boolean body = interalService.isUserOwnerOfVideo(videoId, userId);
+        return status(OK).body(body);
     }
 
 
@@ -44,7 +50,6 @@ public class InternalController {
         return status(OK).body(body);
     }
 
-    // ENROLLMENT
     @GetMapping("/is-exist/{courseId}")
     ResponseEntity<Boolean> isPublishedCourseExist(@PathVariable String courseId) {
         Boolean body = interalService.isPublishedCourseExist(courseId);

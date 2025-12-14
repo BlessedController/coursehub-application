@@ -21,13 +21,13 @@ public class KafkaConsumerConfig {
     private String bootstrapServers;
 
     @Bean
-    public ConsumerFactory<String, AddUserProfilePhotoEvent> addUserProfilePhotoEventConsumerFactory() {
-        return new DefaultKafkaConsumerFactory<>(getConfig(), new StringDeserializer(), buildDeserializer(AddUserProfilePhotoEvent.class));
+    public ConsumerFactory<String, AddProfilePictureToUserEvent> addUserProfilePhotoEventConsumerFactory() {
+        return new DefaultKafkaConsumerFactory<>(getConfig(), new StringDeserializer(), buildDeserializer(AddProfilePictureToUserEvent.class));
     }
 
     @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, AddUserProfilePhotoEvent> kafkaAddProfilePhotoEventListenerContainerFactory() {
-        return buildFactory(AddUserProfilePhotoEvent.class);
+    public ConcurrentKafkaListenerContainerFactory<String, AddProfilePictureToUserEvent> kafkaAddProfilePhotoEventListenerContainerFactory() {
+        return buildFactory(AddProfilePictureToUserEvent.class);
     }
 
     @Bean

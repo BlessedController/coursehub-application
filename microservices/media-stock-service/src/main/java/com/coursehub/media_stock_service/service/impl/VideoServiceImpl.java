@@ -3,12 +3,12 @@ package com.coursehub.media_stock_service.service.impl;
 import com.coursehub.commons.exceptions.*;
 import com.coursehub.commons.kafka.events.AddVideoToCourseEvent;
 import com.coursehub.commons.security.model.UserPrincipal;
-import com.coursehub.media_stock_service.RedisUtil;
 import com.coursehub.media_stock_service.client.CourseServiceClient;
 import com.coursehub.media_stock_service.client.EnrollmentServiceClient;
 import com.coursehub.media_stock_service.enums.AllowedVideoMimeTypes;
 import com.coursehub.media_stock_service.publisher.KafkaPublisher;
 import com.coursehub.media_stock_service.service.VideoService;
+import com.coursehub.media_stock_service.util.RedisUtil;
 import io.minio.*;
 import io.minio.errors.ErrorResponseException;
 import io.minio.http.Method;
@@ -157,7 +157,7 @@ public class VideoServiceImpl implements VideoService {
                     .videoPath(videoPath)
                     .build();
 
-            kafkaPublisher.publishAddVideoToCourseEvent(event);
+            kafkaPublisher.publishEvent(event);
 
         } catch (Exception e) {
             log.error("Streaming HLS processing failed: {}", e.getMessage(), e);
@@ -176,7 +176,7 @@ public class VideoServiceImpl implements VideoService {
             UserPrincipal principal,
             String creatorId,
             String courseId,
-            String videoId,
+            String videoPath,
             HttpServletRequest request,
             HttpServletResponse response) {
 
@@ -185,7 +185,7 @@ public class VideoServiceImpl implements VideoService {
         String remaining = this.getRemainingFromPath(request);
 
         String objectPath =
-                creatorId + "/" + courseId + "/" + videoId + "/" + remaining;
+                creatorId + "/" + courseId + "/" + videoPath + "/" + remaining;
 
         try {
             String presignedUrl = this.getPresignedUrl(objectPath);
@@ -403,6 +403,10 @@ public class VideoServiceImpl implements VideoService {
                     .isUserOwnerOfCourse(courseId, userId)
                     .getBody();
 
+            if (TRUE.equals(isUserCourseOwner)) {
+                return;
+            }
+
             Boolean hasEnrolledByUser = enrollmentServiceClient
                     .hasEnrolledByUser(courseId, userId)
                     .getBody();
@@ -411,7 +415,6 @@ public class VideoServiceImpl implements VideoService {
                 throw new AccessDeniedException("Only the user who enroll this course can perform this action.");
             }
         } catch (feign.RetryableException e) {
-            log.error("Feign error: {}", e.getMessage());
             throw new CustomFeignException(e.getMessage());
         }
 

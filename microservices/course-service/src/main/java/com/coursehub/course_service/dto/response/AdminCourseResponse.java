@@ -33,6 +33,8 @@ public record AdminCourseResponse(
 
         List<String> categories,
 
-        List<String> videos
+        List<String> videos,
+
+        String profilePictureName
 ) {
 }

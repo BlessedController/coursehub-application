@@ -47,9 +47,9 @@ public class InternalServiceImpl implements InternalService {
     }
 
     @Override
-    public void addUserProfilePhotoEvent(AddUserProfilePhotoEvent event) {
-        User user = this.findByIdAndUserStatusInAndUserRoleIn(event.userId(), Set.of(ACTIVE), Set.of(ROLE_USER, ROLE_CONTENT_CREATOR, ROLE_ADMIN));
-        user.setProfilePhotoName(event.profilePhotoName());
+    public void addUserProfilePhotoEvent(AddProfilePictureToUserEvent event) {
+        User user = this.findByIdAndUserStatusInAndUserRoleIn(event.userId(), Set.of(ACTIVE), Set.of(ROLE_USER, ROLE_CONTENT_CREATOR));
+        user.setProfilePictureName(event.profilePictureName());
         userRepository.save(user);
     }
 
@@ -57,7 +57,7 @@ public class InternalServiceImpl implements InternalService {
     @Override
     public void deleteUserProfilePhotoEvent(DeleteUserProfilePhotoEvent event) {
         User user = this.findByIdAndUserStatusInAndUserRoleIn(event.userId(), Set.of(ACTIVE), Set.of(ROLE_USER, ROLE_CONTENT_CREATOR, ROLE_ADMIN));
-        user.setProfilePhotoName(null);
+        user.setProfilePictureName(null);
         userRepository.save(user);
     }
 

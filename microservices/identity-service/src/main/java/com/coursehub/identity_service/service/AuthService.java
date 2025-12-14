@@ -23,7 +23,7 @@ public interface AuthService {
 
     void getVerifyMail(UserPrincipal principal);
 
-    void verify(UserPrincipal principal, String activationCode);
+    void verify( String activationCode);
 
     UserSelfResponse becameInstructor(UserPrincipal principal);
 
@@ -35,7 +35,7 @@ public interface AuthService {
 
     void sendResetPasswordCode(SendResetPasswordCodeRequest request);
 
-    void resetForgottenPassword(ForgottenPasswordResetRequest request);
+    void resetForgottenPassword(ForgottenPasswordResetRequest request, HttpServletResponse response);
 
     User findUserByIdAndUserStatusInAndUserRoleIn(String id, Set<UserStatus> statuses, Set<UserRole> userRoles);
 

@@ -25,7 +25,7 @@ public class JwtUserAccessTokenService {
 
     public UserPrincipal verifyAccessToken(HttpServletRequest request) {
 
-        Optional<String> tokenOpt = getPureUserAccessTokenFromHeaderOrCookie(request);
+        Optional<String> tokenOpt = this.getPureUserAccessTokenFromRequestOrCookie(request);
 
         if (tokenOpt.isEmpty()) return null;
 
@@ -70,13 +70,6 @@ public class JwtUserAccessTokenService {
         return build(claims, expiration);
     }
 
-    public String generateAccessToken(String email, long expiration) {
-        Claims claims = Jwts.claims().setSubject(email);
-        claims.put(CLAIM_TOKEN_TYPE, ACCESS_TOKEN_TYPE);
-
-        return build(claims, expiration);
-    }
-
     private String build(Claims claims, long expiration) {
         long now = System.currentTimeMillis();
 
@@ -89,9 +82,10 @@ public class JwtUserAccessTokenService {
                 .compact();
     }
 
-    private Optional<String> getPureUserAccessTokenFromHeaderOrCookie(HttpServletRequest request) {
+    private Optional<String> getPureUserAccessTokenFromRequestOrCookie(HttpServletRequest request) {
 
         String token = request.getHeader(AUTH_HEADER);
+
         if (token != null && token.startsWith(BEARER_PREFIX)) {
             return Optional.of(token.substring(BEARER_PREFIX.length()));
         }

@@ -1,7 +1,11 @@
 package com.coursehub.identity_service.security;
 
+import com.coursehub.commons.exceptions.NotFoundException;
+import com.coursehub.commons.security.model.UserPrincipal;
 import com.coursehub.commons.security.service.JwtUserAccessTokenService;
 import com.coursehub.commons.security.service.JwtUserRefreshTokenService;
+import com.coursehub.identity_service.model.User;
+import com.coursehub.identity_service.repository.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -14,8 +18,9 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.time.Duration;
-import java.util.List;
+import java.util.function.Supplier;
 
+import static com.coursehub.commons.security.constants.JwtConstants.ACCESS_TOKEN_COOKIE;
 import static com.coursehub.commons.security.constants.JwtConstants.REFRESH_TOKEN_COOKIE;
 import static com.coursehub.identity_service.constants.JwtTokenConstants.ACCESS_TOKEN_EXPIRATION;
 import static com.coursehub.identity_service.constants.JwtTokenConstants.REFRESH_TOKEN_EXPIRATION;
@@ -25,43 +30,59 @@ import static com.coursehub.identity_service.constants.JwtTokenConstants.REFRESH
 public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccessHandler {
     private final JwtUserAccessTokenService jwtServiceUserAccessToken;
     private final JwtUserRefreshTokenService jwtServiceUserRefreshToken;
+    private final UserRepository userRepository;
 
-
-    private static final List<String> ALLOWED_REDIRECTS = List.of(
-            "https://your-frontend.com",
-            "http://localhost:5173"
-    );
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
                                         Authentication authentication) throws IOException {
+
         OidcUser oidcUser = (OidcUser) authentication.getPrincipal();
+
         String email = oidcUser.getEmail();
 
-        String accessToken = jwtServiceUserAccessToken.generateAccessToken(email, ACCESS_TOKEN_EXPIRATION);
-        String refreshToken = jwtServiceUserRefreshToken.generateRefreshToken(email, REFRESH_TOKEN_EXPIRATION);
+        Supplier<NotFoundException> notFoundExceptionSupplier = () -> new NotFoundException("User not found by email: " + email);
 
-        ResponseCookie cookie = ResponseCookie.from(REFRESH_TOKEN_COOKIE, refreshToken)
+        User user = userRepository.findByEmail(email).orElseThrow(notFoundExceptionSupplier);
+
+        UserPrincipal principal = new UserPrincipal(
+                user.getId(),
+                user.getUsername(),
+                user.getEmail(),
+                user.getUserRole().toString()
+        );
+
+        String accessToken = jwtServiceUserAccessToken.generateAccessToken(principal, ACCESS_TOKEN_EXPIRATION);
+        String refreshToken = jwtServiceUserRefreshToken.generateRefreshToken(principal, REFRESH_TOKEN_EXPIRATION);
+
+        ResponseCookie accessCookie = ResponseCookie.from(ACCESS_TOKEN_COOKIE, accessToken)
+                .httpOnly(false)
+                .secure(false)
+                .path("/")
+                .maxAge(Duration.ofMillis(ACCESS_TOKEN_EXPIRATION))
+                .sameSite("Lax")
+                .build();
+
+        ResponseCookie refreshCookie = ResponseCookie.from(REFRESH_TOKEN_COOKIE, refreshToken)
                 .httpOnly(true)
-                .secure(true)
+                .secure(false)
                 .path("/")
                 .maxAge(Duration.ofMillis(REFRESH_TOKEN_EXPIRATION))
                 .sameSite("Lax")
                 .build();
 
-        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+
+        response.addHeader(HttpHeaders.SET_COOKIE, accessCookie.toString());
+
+        response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
 
         response.addHeader(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken);
 
         response.setContentType("application/json;charset=UTF-8");
 
-        String redirectUri = request.getParameter("redirect_uri");
+        String redirectUrl = "http://localhost:5173/oauth2/callback?accessToken=" + accessToken + "&refreshToken=" + refreshToken;
 
-        if (redirectUri != null && ALLOWED_REDIRECTS.stream().anyMatch(redirectUri::startsWith)) {
-            response.sendRedirect(redirectUri + "?accessToken=" + accessToken);
-            return;
-        }
+        response.sendRedirect(redirectUrl);
 
-        response.getWriter().write("{\"accessToken\":\"" + accessToken + "\"}");
     }
 }

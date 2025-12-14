@@ -8,6 +8,7 @@ public record PublicUserResponse(
         String email,
         String firstName,
         String lastName,
+        String profilePictureName,
         Gender gender,
         Double rating,
         int ratingCount

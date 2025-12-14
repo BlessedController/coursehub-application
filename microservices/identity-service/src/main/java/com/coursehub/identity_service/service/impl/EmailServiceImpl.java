@@ -40,7 +40,7 @@ public class EmailServiceImpl implements EmailService {
             helper.setSubject("Activation Email");
 
             String activationUrl =
-                    frontendHost + "/activate-account?code=" + activationCode + "&email=" + email;
+                    frontendHost + "/activate-account?code=" + activationCode;
 
             String htmlContent = String.format(
                     "Please activate your account by clicking the link below:<br>" +
@@ -63,10 +63,13 @@ public class EmailServiceImpl implements EmailService {
         try {
 
             MimeMessage message = mailSender.createMimeMessage();
+
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
             helper.setFrom(mailProperties.getFrom());
+
             helper.setTo(email);
+
             helper.setSubject("Reset Password");
 
             String resetPasswordUrl =

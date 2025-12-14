@@ -34,7 +34,7 @@ identity-service:
   auth-base-url: /v1/api/users/auth
   self-base-url: /v1/api/users/self
   internal-base-url: /v1/api/users/internal
-  frontend-host: my-frontend.com
+  frontend-host: http://localhost:5173
 
 
 jwt:

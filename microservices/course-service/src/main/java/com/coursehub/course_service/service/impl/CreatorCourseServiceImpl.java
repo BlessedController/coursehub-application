@@ -86,7 +86,6 @@ public class CreatorCourseServiceImpl implements CreatorCourseService {
     @Override
     public PageResponse<CreatorCourseResponse> getMyCourses(UserPrincipal principal, int page, int size, String sortBy, String orderBy) {
 
-
         Pageable pageable = this.getPageable(page, size, sortBy, orderBy);
 
 
@@ -97,7 +96,7 @@ public class CreatorCourseServiceImpl implements CreatorCourseService {
 
         return PageResponse.<CreatorCourseResponse>builder()
                 .content(responsePages.getContent())
-                .pageNumber(responsePages.getNumber() + 1)
+                .pageNumber(responsePages.getNumber()+1)
                 .size(responsePages.getSize())
                 .totalElements(responsePages.getTotalElements())
                 .totalPages(responsePages.getTotalPages())
@@ -142,7 +141,7 @@ public class CreatorCourseServiceImpl implements CreatorCourseService {
 
         Sort sort = Sort.by(direction, sortBy);
 
-        return PageRequest.of(normalizedPage, normalizedSize, sort);
+        return PageRequest.of(normalizedPage-1, normalizedSize, sort);
     }
 
     private void validateUserIsCourseOwnerOrAdmin(String instructorId, UserPrincipal principal) {

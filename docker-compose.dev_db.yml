@@ -59,3 +59,12 @@ services:
 networks:
   coursehub-net:
     external: true
+
+
+
+
+volumes:
+  identity_postgres_dev_data:
+  course_postgres_dev_data:
+  enrollment_postgres_dev_data:
+  rating_postgres_dev_data:

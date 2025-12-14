@@ -1,24 +1,37 @@
 spring:
+
+  config:
+    activate:
+      on-profile: dev
+
   servlet:
     multipart:
       max-file-size: 400MB
       max-request-size: 400MB
 
 minio:
-  profile-photo-bucket: user-profile-photos
+  user-profile-photo-bucket: user-profile-pictures
+  course-profile-photo-bucket: course-profile-pictures
+  video-profile-photo-bucket: video-profile-pictures
   course-videos-bucket: course-videos
+
   url: http://localhost:9000
+
   access-key: root_user
   secret-key: root_pass
 
 media-stock-service:
+
   client:
+
     course-service:
       host: http://localhost:8082
       internal-controller-url: /v1/api/courses/internal
+
     enrollment-service:
       host: http://localhost:8084
       internal-controller-url: /v1/api/enrollments/internal
+
 
 redis:
   server:

@@ -14,4 +14,5 @@ public class InternalController {
 
         return ResponseEntity.ok(Boolean.TRUE);
     }
+
 }

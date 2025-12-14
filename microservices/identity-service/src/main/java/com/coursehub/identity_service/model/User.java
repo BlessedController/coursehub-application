@@ -53,8 +53,7 @@ public class User {
     String lastName;
 
     @Column(unique = true)
-    @Builder.Default
-    String activationCode = java.util.UUID.randomUUID().toString();
+    String activationCode;
 
     @Column
     String tempCode;
@@ -100,6 +99,6 @@ public class User {
     LocalDateTime updatedAt;
 
     @Column
-    String profilePhotoName;
+    String profilePictureName;
 
 }

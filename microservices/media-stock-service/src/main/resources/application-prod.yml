@@ -1,12 +1,19 @@
 spring:
+
+  config:
+    activate:
+      on-profile: prod
+
   servlet:
     multipart:
-      max-file-size: 40MB
-      max-request-size: 40MB
+      max-file-size: 400MB
+      max-request-size: 400MB
 
 
 minio:
-  profile-photo-bucket: user-profile-photos
+  user-profile-photo-bucket: user-profile-pictures
+  course-profile-photo-bucket: course-profile-pictures
+  video-profile-photo-bucket: video-profile-pictures
   course-videos-bucket: course-videos
   url: http://coursehub-minio:9000
   access-key: root_user
@@ -24,4 +31,4 @@ media-stock-service:
 
 redis:
   server:
-    url: redis://coursehub-redis:6380
+    url: redis://coursehub-redis:6379

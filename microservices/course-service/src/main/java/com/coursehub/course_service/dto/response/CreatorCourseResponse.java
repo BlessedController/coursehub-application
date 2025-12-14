@@ -13,7 +13,8 @@ public record CreatorCourseResponse(
         String title,
         String description,
         BigDecimal price,
-        Set<String> categoryIds
-        //TODO: immediately add video ids
+        Set<String> categoryIds,
+        Set<String> videoIds,
+        String profilePictureName
 ) implements Serializable {
 }

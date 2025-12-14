@@ -13,10 +13,11 @@ public record UserSelfResponse(
         UserRole userRole,
         String firstName,
         String lastName,
+        String profilePictureName,
         Gender gender,
         UserStatus userStatus,
         Boolean isVerified,
-        LocalDateTime createdAt,
-        LocalDateTime updatedAt
+        LocalDateTime createdAt
+
 ) {
 }

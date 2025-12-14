@@ -11,4 +11,4 @@ server:
 
 media-stock-service:
   video-base-url: /v1/api/media/video
-
+  photo-base-url: /v1/api/media/photo

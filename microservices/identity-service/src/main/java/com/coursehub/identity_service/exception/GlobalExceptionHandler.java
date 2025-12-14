@@ -44,7 +44,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(InvalidRequestException.class)
     public ResponseEntity<GlobalExceptionMessage> handle(InvalidRequestException exception,
-                                                                                 HttpServletRequest request) {
+                                                         HttpServletRequest request) {
 
         var body = createExceptionBody(BAD_REQUEST,
                 exception.getMessage(),
@@ -55,9 +55,20 @@ public class GlobalExceptionHandler {
 
     }
 
+    @ExceptionHandler(LoginException.class)
+    public ResponseEntity<GlobalExceptionMessage> handle(LoginException exception,
+                                                         HttpServletRequest request) {
+        var body = createExceptionBody(UNAUTHORIZED,
+                exception.getMessage(),
+                request.getRequestURI()
+        );
+
+        return new ResponseEntity<>(body, UNAUTHORIZED);
+    }
+
     @ExceptionHandler(UserNotVerifiedException.class)
     public ResponseEntity<GlobalExceptionMessage> handle(UserNotVerifiedException exception,
-                                                                                  HttpServletRequest request) {
+                                                         HttpServletRequest request) {
         var body = createExceptionBody(FORBIDDEN,
                 exception.getMessage(),
                 request.getRequestURI()
@@ -68,7 +79,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(UserNotActiveException.class)
     public ResponseEntity<GlobalExceptionMessage> handle(UserNotActiveException exception,
-                                                                                HttpServletRequest request) {
+                                                         HttpServletRequest request) {
         var body = createExceptionBody(FORBIDDEN,
                 exception.getMessage(),
                 request.getRequestURI()
@@ -88,6 +99,7 @@ public class GlobalExceptionHandler {
 
         return new ResponseEntity<>(body, BAD_REQUEST);
     }
+
     @ExceptionHandler(ConflictException.class)
     public ResponseEntity<GlobalExceptionMessage> handle(ConflictException exception,
                                                          HttpServletRequest request) {
@@ -101,7 +113,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(NotFoundException.class)
     public ResponseEntity<GlobalExceptionMessage> handle(NotFoundException exception,
-                                                                               HttpServletRequest request) {
+                                                         HttpServletRequest request) {
         var body = createExceptionBody(NOT_FOUND,
                 exception.getMessage(),
                 request.getRequestURI()
@@ -111,7 +123,6 @@ public class GlobalExceptionHandler {
     }
 
     // TODO: Handle HttpMethodNotArgumentException
-
 
 
     @ExceptionHandler(AuthenticationException.class)
@@ -131,7 +142,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<?> handle(MethodArgumentNotValidException exception,
-                                                                    HttpServletRequest request) {
+                                    HttpServletRequest request) {
 
         Map<String, List<String>> errors = exception.getBindingResult().getFieldErrors().stream()
                 .collect(Collectors.groupingBy(

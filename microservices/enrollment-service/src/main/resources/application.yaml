@@ -5,7 +5,6 @@ spring:
 enrollment-service:
   enrollment-controller-base-url: /v1/api/enrollments/user
   internal-controller-base-url: /v1/api/enrollments/internal
-  admin-controller-base-url: /v1/api/enrollments/admin
 
 jwt:
   user-secret-key: ${JWT_USER_SECRET_KEY}

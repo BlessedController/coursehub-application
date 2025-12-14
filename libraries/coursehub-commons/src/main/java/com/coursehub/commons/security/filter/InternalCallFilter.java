@@ -5,6 +5,8 @@ import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.lang.NonNull;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.servlet.HandlerExceptionResolver;
@@ -13,6 +15,7 @@ public class InternalCallFilter extends OncePerRequestFilter {
 
     private final JwtInternalTokenService jwtInternalTokenService;
     private final HandlerExceptionResolver handlerExceptionResolver;
+    private static final Logger  log = LoggerFactory.getLogger(InternalCallFilter.class);
 
     public InternalCallFilter(JwtInternalTokenService jwtInternalTokenService,
                               HandlerExceptionResolver handlerExceptionResolver) {
@@ -43,6 +46,10 @@ public class InternalCallFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
 
         } catch (Exception ex) {
+            log.error("InternalCallFilter → Internal token validation failed. Path: {}, Error: {}",
+                    request.getRequestURI(),
+                    ex.getMessage());
+
             handlerExceptionResolver.resolveException(request, response, null, ex);
         }
     }

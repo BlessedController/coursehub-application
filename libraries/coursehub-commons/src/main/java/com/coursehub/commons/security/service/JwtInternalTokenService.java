@@ -45,7 +45,7 @@ public class JwtInternalTokenService {
 
     public boolean verifyInternalToken(HttpServletRequest request) {
 
-        Optional<String> tokenOpt = this.getPureInternalTokenFromHeader(request);
+        Optional<String> tokenOpt = this.getPureInternalTokenFromRequest(request);
 
         if (tokenOpt.isEmpty()) return false;
 
@@ -67,7 +67,7 @@ public class JwtInternalTokenService {
         }
     }
 
-    private Optional<String> getPureInternalTokenFromHeader(HttpServletRequest request) {
+    private Optional<String> getPureInternalTokenFromRequest(HttpServletRequest request) {
 
         String token = request.getHeader(INTERNAL_TOKEN_HEADER_NAME);
 

@@ -48,5 +48,8 @@ public interface UserRepository extends JpaRepository<User, String> , JpaSpecifi
     );
 
 
-    Optional<User> findByEmailAndUserStatus(String email, UserStatus userStatus);
+    Optional<User> findByEmailAndUserStatusIn(String email,Collection< UserStatus> userStatuses);
+
+
+    Optional<User> findByActivationCodeAndIsVerified(String activationCode, Boolean isVerified);
 }

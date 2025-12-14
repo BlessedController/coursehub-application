@@ -17,7 +17,7 @@ spring:
 
 redis:
   server:
-    url: redis://coursehub-redis:6380
+    url: redis://coursehub-redis:6379
 
 kafka:
   bootstrap-servers: coursehub-kafka:9092

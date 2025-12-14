@@ -59,13 +59,7 @@ public class RetrieveMessageErrorDecoder implements ErrorDecoder {
         } catch (IOException e) {
             return new Exception(e.getMessage());
         }
-
-
-        if (response.status() == 404) {
-            return new CustomFeignException(message);
-        }
-
-        return defaultDecoder.decode(methodKey, response);
+        return new CustomFeignException(message);
     }
 
 

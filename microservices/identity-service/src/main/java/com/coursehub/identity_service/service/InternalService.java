@@ -14,7 +14,7 @@ public interface InternalService {
 
     void updateContentCreatorRating(ContentCreatorRatingUpdatedEvent event);
 
-    void addUserProfilePhotoEvent(AddUserProfilePhotoEvent event);
+    void addUserProfilePhotoEvent(AddProfilePictureToUserEvent event);
 
     void deleteUserProfilePhotoEvent(DeleteUserProfilePhotoEvent event);
 

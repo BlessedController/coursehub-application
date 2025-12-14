@@ -1,11 +1,12 @@
 package com.coursehub.course_service.service;
 
 
-import com.coursehub.commons.kafka.events.AddVideoToCourseEvent;
-import com.coursehub.commons.kafka.events.DeleteVideoFromCourseEvent;
+import com.coursehub.commons.security.model.UserPrincipal;
+import com.coursehub.course_service.dto.request.EditDisplayNameRequest;
+import com.coursehub.course_service.dto.response.VideoResponse;
 
 public interface VideoService {
-    void addVideoToCourse(AddVideoToCourseEvent event);
+    VideoResponse getVideoById(String id);
 
-    void deleteVideoFromCourse(DeleteVideoFromCourseEvent event);
+    VideoResponse editDisplayName(UserPrincipal principal, String videoId, EditDisplayNameRequest request);
 }

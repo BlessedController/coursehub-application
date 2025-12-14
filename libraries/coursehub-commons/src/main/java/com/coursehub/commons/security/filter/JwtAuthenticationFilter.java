@@ -5,6 +5,8 @@ import com.coursehub.commons.security.service.JwtUserAccessTokenService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -16,6 +18,8 @@ import org.springframework.web.servlet.HandlerExceptionResolver;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtUserAccessTokenService jwtUserAccessTokenService;
     private final HandlerExceptionResolver handlerExceptionResolver;
+    private static final Logger log = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
+
 
     public JwtAuthenticationFilter(JwtUserAccessTokenService jwtUserAccessTokenService,
                                    HandlerExceptionResolver handlerExceptionResolver) {
@@ -55,8 +59,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             filterChain.doFilter(request, response);
 
-        } catch (Exception exception) {
-            handlerExceptionResolver.resolveException(request, response, null, exception);
+        } catch (Exception ex) {
+            log.error("JwtAuthenticationFilter → Access token validation failed. Path: {}, Error: {}",
+                    request.getRequestURI(),
+                    ex.getMessage());
+            handlerExceptionResolver.resolveException(request, response, null, ex);
         }
 
 

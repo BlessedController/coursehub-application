@@ -63,9 +63,8 @@ public class AuthController {
     }
 
     @PatchMapping("/verify/{activation-code}")
-    public ResponseEntity<Void> verify(@AuthenticationPrincipal UserPrincipal principal,
-                                       @PathVariable(name = "activation-code") String activationCode) {
-        authService.verify(principal, activationCode);
+    public ResponseEntity<Void> verify(@PathVariable(name = "activation-code") String activationCode) {
+        authService.verify(activationCode);
         return noContent().build();
     }
 
@@ -106,10 +105,11 @@ public class AuthController {
     }
 
     @PostMapping("/reset-forgotten-password")
-    public ResponseEntity<Void> resetForgottenPassword(@Valid @RequestBody ForgottenPasswordResetRequest request) {
-        authService.resetForgottenPassword(request);
+    public ResponseEntity<Void> resetForgottenPassword(@Valid @RequestBody ForgottenPasswordResetRequest request, HttpServletResponse response) {
+        authService.resetForgottenPassword(request,response);
         return noContent().build();
     }
+
 
 
 }

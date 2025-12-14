@@ -1,13 +1,3 @@
 networks:
   coursehub-net:
     driver: bridge
-
-volumes:
-  identity_postgres_dev_data:
-  course_postgres_dev_data:
-  enrollment_postgres_dev_data:
-  rating_postgres_dev_data:
-  identity_postgres_prod_data:
-  course_postgres_prod_data:
-  enrollment_postgres_prod_data:
-  rating_postgres_prod_data:

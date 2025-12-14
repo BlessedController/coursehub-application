@@ -38,5 +38,7 @@ public class Video {
     @ManyToOne(fetch = LAZY)
     Course course;
 
+    String profilePictureName;
+
 
 }

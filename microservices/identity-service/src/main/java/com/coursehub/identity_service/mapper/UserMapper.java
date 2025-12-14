@@ -39,12 +39,11 @@ public class UserMapper {
                 user.getUserRole(),
                 user.getFirstName(),
                 user.getLastName(),
+                user.getProfilePictureName(),
                 user.getGender(),
                 user.getUserStatus(),
                 user.getIsVerified(),
-                user.getCreatedAt(),
-                user.getUpdatedAt()
-        );
+                user.getCreatedAt());
     }
 
     public static PublicUserResponse toPublicUserResponse(User user) {
@@ -55,6 +54,7 @@ public class UserMapper {
                 user.getEmail(),
                 user.getFirstName(),
                 user.getLastName(),
+                user.getProfilePictureName(),
                 user.getGender(),
                 user.getRating(),
                 user.getRatingCount()

@@ -2,6 +2,7 @@ package com.coursehub.enrollment_service.controller;
 
 import com.coursehub.commons.security.model.UserPrincipal;
 import com.coursehub.enrollment_service.dto.request.EnrollmentRequest;
+import com.coursehub.enrollment_service.dto.response.EnrolledCourseResponse;
 import com.coursehub.enrollment_service.service.EnrollmentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -22,6 +23,12 @@ public class UserEnrollmentController {
         enrollmentService.enroll(request, principal);
 
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/my-learnings")
+    public ResponseEntity<EnrolledCourseResponse> getEnrolledCoursesByUserId(@AuthenticationPrincipal UserPrincipal principal) {
+        EnrolledCourseResponse body=  enrollmentService.getEnrolledCoursesByUserId(principal);
+        return ResponseEntity.ok().body(body);
     }
 
 

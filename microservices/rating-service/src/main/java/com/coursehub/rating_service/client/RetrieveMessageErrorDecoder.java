@@ -2,7 +2,7 @@ package com.coursehub.rating_service.client;
 
 
 import com.coursehub.commons.exceptions.CustomFeignException;
-import com.coursehub.commons.globals.GlobalExceptionMessage;
+import com.coursehub.commons.exceptions.globals.GlobalExceptionMessage;
 import feign.Response;
 import feign.codec.ErrorDecoder;
 import org.apache.commons.io.IOUtils;
@@ -54,12 +54,8 @@ public class RetrieveMessageErrorDecoder implements ErrorDecoder {
             return new Exception(e.getMessage());
         }
 
+        return new CustomFeignException(message);
 
-        if (response.status() == 404) {
-            return new CustomFeignException(message);
-        }
-
-        return defaultDecoder.decode(methodKey, response);
     }
 
 

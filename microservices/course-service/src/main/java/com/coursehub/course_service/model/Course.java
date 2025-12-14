@@ -84,5 +84,8 @@ public class Course {
     @OneToMany(mappedBy = "course", cascade = ALL, fetch = LAZY)
     List<Video> videos = new ArrayList<>();
 
+    @Column
+    String profilePicture;
+
 
 }

@@ -26,7 +26,7 @@ public class SecurityConfig {
     private final CustomOidcUserService customOidcUserService;
     private final OAuth2AuthenticationSuccessHandler successHandler;
     private final AuthenticationEntryPoint authEntryPoint;
-    private final CorsConfigurationSource corsConfigurationSource;
+//    private final CorsConfigurationSource corsConfigurationSource;
     private final HandlerExceptionResolver handlerExceptionResolver;
     private final JwtInternalTokenService jwtInternalTokenService;
     private final JwtUserAccessTokenService jwtServiceUserAccessToken;
@@ -44,10 +44,10 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .csrf(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
+                .cors(AbstractHttpConfigurer::disable)
 
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(authEntryPoint)
@@ -63,6 +63,7 @@ public class SecurityConfig {
                                 "/v1/api/users/auth/refresh",
                                 "/v1/api/users/auth/forgot-password",
                                 "/v1/api/users/auth/reset-forgotten-password",
+                                "/v1/api/users/auth/verify/**",
                                 "/v1/api/users/public/**",
                                 "/v1/api/users/internal/**"
                         ).permitAll()

@@ -1,7 +1,6 @@
 package com.coursehub.enrollment_service.service.impl;
 
-import com.coursehub.commons.exceptions.CustomFeignException;
-import com.coursehub.commons.exceptions.InvalidRequestException;
+import com.coursehub.commons.exceptions.*;
 import com.coursehub.commons.feign.CoursePriceResponse;
 import com.coursehub.commons.feign.PaymentRequest;
 import com.coursehub.commons.feign.enums.PaymentMethod;
@@ -9,6 +8,7 @@ import com.coursehub.commons.security.model.UserPrincipal;
 import com.coursehub.enrollment_service.client.CourseServiceClient;
 import com.coursehub.enrollment_service.client.PaymentServiceClient;
 import com.coursehub.enrollment_service.dto.request.EnrollmentRequest;
+import com.coursehub.enrollment_service.dto.response.EnrolledCourseResponse;
 import com.coursehub.enrollment_service.model.Enrollment;
 import com.coursehub.enrollment_service.repository.EnrollmentRepository;
 import com.coursehub.enrollment_service.service.EnrollmentService;
@@ -17,7 +17,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -54,6 +55,18 @@ public class EnrollmentServiceImpl implements EnrollmentService {
                 .build();
 
         enrollmentRepository.save(enrollment);
+    }
+
+    @Override
+    public EnrolledCourseResponse getEnrolledCoursesByUserId(UserPrincipal principal) {
+
+        Set<String> enrolledCourseIds = enrollmentRepository.findAllByUserId(principal.getId()).stream()
+                .map(Enrollment::getCourseId).collect(Collectors.toSet());
+
+        return EnrolledCourseResponse.builder()
+                .enrolledCourses(enrolledCourseIds)
+                .build();
+
     }
 
 

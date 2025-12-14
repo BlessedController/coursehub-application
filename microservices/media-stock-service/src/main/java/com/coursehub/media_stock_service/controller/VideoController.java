@@ -35,16 +35,16 @@ public class VideoController {
     }
 
 
-    @GetMapping("/stream/{creatorId}/{courseId}/{videoId}/**")
+    @GetMapping("/stream/{creatorId}/{courseId}/{videoPath}/**")
     public ResponseEntity<Void> stream(
             @AuthenticationPrincipal UserPrincipal principal,
             @PathVariable String creatorId,
             @PathVariable String courseId,
-            @PathVariable String videoId,
+            @PathVariable String videoPath,
             HttpServletRequest request,
             HttpServletResponse response) {
 
-        videoService.streamVideo(principal,creatorId, courseId, videoId, request, response);
+        videoService.streamVideo(principal,creatorId, courseId, videoPath, request, response);
         return status(OK).build();
     }
 

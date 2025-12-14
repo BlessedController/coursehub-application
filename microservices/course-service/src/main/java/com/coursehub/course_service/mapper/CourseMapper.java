@@ -28,7 +28,9 @@ public class CourseMapper {
                 course.getDescription(),
                 userResponse,
                 course.getPrice(),
-                course.getCategories().stream().map(Category::getId).collect(Collectors.toSet())
+                course.getCategories().stream().map(Category::getId).collect(Collectors.toSet()),
+                course.getVideos().stream().map(Video::getId).collect(Collectors.toSet()),
+                course.getProfilePicture()
         );
     }
 
@@ -51,6 +53,7 @@ public class CourseMapper {
                 .updatedAt(course.getUpdatedAt())
                 .categories(categoryIds)
                 .videos(videoIds)
+                .profilePictureName(course.getProfilePicture())
                 .build();
     }
 
@@ -90,7 +93,9 @@ public class CourseMapper {
                 course.getTitle(),
                 course.getDescription(),
                 course.getPrice(),
-                course.getCategories().stream().map(Category::getId).collect(Collectors.toSet())
+                course.getCategories().stream().map(Category::getId).collect(Collectors.toSet()),
+                course.getVideos().stream().map(Video::getId).collect(Collectors.toSet()),
+                course.getProfilePicture()
         );
     }
 }

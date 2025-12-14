@@ -9,6 +9,8 @@ spring:
       ddl-auto: update
     show-sql: true
 
+
+
   datasource:
     url: jdbc:postgresql://localhost:5433/ch_cs_dev_db
     username: ch_cs_dev_user
@@ -27,3 +29,13 @@ course-service:
     identity-service:
       host: http://localhost:8081
       internal-controller-url: /v1/api/users/internal
+
+logging:
+  level:
+    org:
+      hibernate:
+        SQL: DEBUG
+        type:
+          descriptor:
+            sql:
+              BasicBinder: TRACE

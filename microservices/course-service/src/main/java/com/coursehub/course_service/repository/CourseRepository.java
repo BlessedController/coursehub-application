@@ -19,5 +19,7 @@ public interface CourseRepository extends JpaRepository<Course, String>, JpaSpec
 
     boolean existsByIdAndStatusIn(String id, Collection<CourseStatus> statuses);
 
-    Page<Course> getCoursesByInstructorId(String instructorId, Pageable pageable);
+    @Query("SELECT c FROM Course c WHERE c.instructorId = :instructorId")
+    Page<Course> getCoursesByInstructorId(@Param("instructorId") String instructorId, Pageable pageable);
+
 }

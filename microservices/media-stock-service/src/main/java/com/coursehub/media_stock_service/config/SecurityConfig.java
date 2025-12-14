@@ -1,6 +1,5 @@
 package com.coursehub.media_stock_service.config;
 
-import com.coursehub.commons.security.filter.InternalCallFilter;
 import com.coursehub.commons.security.filter.JwtAuthenticationFilter;
 import com.coursehub.commons.security.service.JwtUserAccessTokenService;
 import lombok.RequiredArgsConstructor;
@@ -24,8 +23,8 @@ public class SecurityConfig {
 
 
     private final HandlerExceptionResolver handlerExceptionResolver;
-    private final CorsConfigurationSource corsConfigurationSource;
     private final JwtUserAccessTokenService jwtServiceUserAccessToken;
+    private final CorsConfigurationSource corsConfigurationSource;
 
 
     @Bean

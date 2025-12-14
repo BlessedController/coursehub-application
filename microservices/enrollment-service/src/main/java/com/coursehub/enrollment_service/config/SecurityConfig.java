@@ -24,7 +24,6 @@ import org.springframework.web.servlet.HandlerExceptionResolver;
 public class SecurityConfig {
 
     private final HandlerExceptionResolver handlerExceptionResolver;
-    private final CorsConfigurationSource corsConfigurationSource;
     private final JwtUserAccessTokenService jwtServiceUserAccessToken;
     private final JwtInternalTokenService jwtServiceInternalToken;
 
@@ -53,7 +52,7 @@ public class SecurityConfig {
                 )
 
                 .csrf(AbstractHttpConfigurer::disable)
-                .cors(cors -> cors.configurationSource(corsConfigurationSource))
+                .cors(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
 
