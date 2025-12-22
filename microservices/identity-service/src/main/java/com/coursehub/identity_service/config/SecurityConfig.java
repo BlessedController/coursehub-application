@@ -26,7 +26,7 @@ public class SecurityConfig {
     private final CustomOidcUserService customOidcUserService;
     private final OAuth2AuthenticationSuccessHandler successHandler;
     private final AuthenticationEntryPoint authEntryPoint;
-//    private final CorsConfigurationSource corsConfigurationSource;
+    private final CorsConfigurationSource corsConfigurationSource;
     private final HandlerExceptionResolver handlerExceptionResolver;
     private final JwtInternalTokenService jwtInternalTokenService;
     private final JwtUserAccessTokenService jwtServiceUserAccessToken;
@@ -47,7 +47,7 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
-                .cors(AbstractHttpConfigurer::disable)
+                .cors(cors->cors.configurationSource(corsConfigurationSource))
 
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(authEntryPoint)

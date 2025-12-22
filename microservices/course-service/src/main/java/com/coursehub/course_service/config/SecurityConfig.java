@@ -27,6 +27,7 @@ public class SecurityConfig {
 
     private final JwtUserAccessTokenService jwtServiceUserAccessToken;
     private final JwtInternalTokenService jwtServiceInternalToken;
+    private final CorsConfigurationSource corsConfigurationSource;
 
     @Bean
     public JwtAuthenticationFilter jwtAuthenticationFilter() {
@@ -59,7 +60,7 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
 
-                .cors(AbstractHttpConfigurer::disable)
+                .cors(cors->cors.configurationSource(corsConfigurationSource))
                 .csrf(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
