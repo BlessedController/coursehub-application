@@ -117,9 +117,18 @@ public class VideoServiceImpl implements VideoService {
             HttpServletRequest request,
             HttpServletResponse response) {
 
-        this.validateUserHasAccessToStream(courseId, principal.getId());
-
         String remaining = this.getRemainingFromPath(request);
+
+        String sessionKey = "stream:session:" + principal.getId() + ":" + videoPath;
+
+        String hasSession = redisUtil.getDataFromCache(sessionKey);
+
+        if (hasSession == null) {
+            log.info("Oturum bulunamadı, yetki kontrolleri yapılıyor: {}", sessionKey);
+            this.validateUserHasAccessToStream(courseId, principal.getId());
+
+            redisUtil.saveToCache(sessionKey, "ACTIVE", 1L, ChronoUnit.HOURS);
+        }
 
         String objectPath =
                 creatorId + "/" + courseId + "/" + videoPath + "/" + remaining;
