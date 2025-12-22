@@ -54,69 +54,6 @@ public class VideoServiceImpl implements VideoService {
     @Value("${minio.course-videos-bucket}")
     private String courseVideosBucketName;
 
-    private String getMimeType(MultipartFile file) {
-        String original = file.getOriginalFilename();
-
-        if (original == null || !original.contains(".")) {
-            throw new InvalidFileFormatException("File has no extension");
-        }
-
-        String ext = original.substring(original.lastIndexOf('.') + 1);
-
-        return AllowedVideoMimeTypes.fromExtension(ext)
-                .map(AllowedVideoMimeTypes::getMimeType)
-                .orElseThrow(() -> new InvalidFileFormatException("Unsupported file type: " + ext));
-    }
-
-    private void transferVideoFileToFfmpeg(Process process, MultipartFile file) {
-        try (
-                OutputStream ffmpegOutputStream = process.getOutputStream();
-                InputStream fileInputStream = file.getInputStream()
-        ) {
-            fileInputStream.transferTo(ffmpegOutputStream);
-        } catch (IOException exception) {
-            throw new FileOperationException(
-                    "An error occurred during streaming video file to FFmpeg.",
-                    exception
-            );
-        }
-    }
-
-    private String uploadToMinio(UserPrincipal principal, String courseId, Path tempDir) {
-        String videoPath = UUID.randomUUID().toString();
-
-        String basePath = principal.getId() + FILE_SEPARATOR + courseId + FILE_SEPARATOR + videoPath + FILE_SEPARATOR;
-
-        try (Stream<Path> pathStream = Files.walk(tempDir)) {
-
-            pathStream.filter(Files::isRegularFile).forEach(path -> {
-
-                        String objectName = basePath +
-                                tempDir.relativize(path).toString().replace("\\", FILE_SEPARATOR);
-
-                        try (InputStream is = Files.newInputStream(path)) {
-
-                            minioClient.putObject(
-                                    PutObjectArgs.builder()
-                                            .bucket(courseVideosBucketName)
-                                            .object(objectName)
-                                            .stream(is, Files.size(path), -1)
-                                            .build()
-                            );
-
-                            log.info("Uploaded HLS chunk to MinIO: {}", objectName);
-
-                        } catch (Exception e) {
-                            throw new FileOperationException("Failed to upload HLS file to MinIO", e);
-                        }
-
-                    }
-            );
-        } catch (IOException e) {
-            throw new FileOperationException("Failed to upload HLS file to MinIO", e);
-        }
-        return videoPath;
-    }
 
     @Override
     public void uploadVideoFile(MultipartFile file,
@@ -204,6 +141,70 @@ public class VideoServiceImpl implements VideoService {
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             this.sendJson(response, "{\"error\":\"stream_failed\"}");
         }
+    }
+
+    private String getMimeType(MultipartFile file) {
+        String original = file.getOriginalFilename();
+
+        if (original == null || !original.contains(".")) {
+            throw new InvalidFileFormatException("File has no extension");
+        }
+
+        String ext = original.substring(original.lastIndexOf('.') + 1);
+
+        return AllowedVideoMimeTypes.fromExtension(ext)
+                .map(AllowedVideoMimeTypes::getMimeType)
+                .orElseThrow(() -> new InvalidFileFormatException("Unsupported file type: " + ext));
+    }
+
+    private void transferVideoFileToFfmpeg(Process process, MultipartFile file) {
+        try (
+                OutputStream ffmpegOutputStream = process.getOutputStream();
+                InputStream fileInputStream = file.getInputStream()
+        ) {
+            fileInputStream.transferTo(ffmpegOutputStream);
+        } catch (IOException exception) {
+            throw new FileOperationException(
+                    "An error occurred during streaming video file to FFmpeg.",
+                    exception
+            );
+        }
+    }
+
+    private String uploadToMinio(UserPrincipal principal, String courseId, Path tempDir) {
+        String videoPath = UUID.randomUUID().toString();
+
+        String basePath = principal.getId() + FILE_SEPARATOR + courseId + FILE_SEPARATOR + videoPath + FILE_SEPARATOR;
+
+        try (Stream<Path> pathStream = Files.walk(tempDir)) {
+
+            pathStream.filter(Files::isRegularFile).forEach(path -> {
+
+                        String objectName = basePath +
+                                tempDir.relativize(path).toString().replace("\\", FILE_SEPARATOR);
+
+                        try (InputStream is = Files.newInputStream(path)) {
+
+                            minioClient.putObject(
+                                    PutObjectArgs.builder()
+                                            .bucket(courseVideosBucketName)
+                                            .object(objectName)
+                                            .stream(is, Files.size(path), -1)
+                                            .build()
+                            );
+
+                            log.info("Uploaded HLS chunk to MinIO: {}", objectName);
+
+                        } catch (Exception e) {
+                            throw new FileOperationException("Failed to upload HLS file to MinIO", e);
+                        }
+
+                    }
+            );
+        } catch (IOException e) {
+            throw new FileOperationException("Failed to upload HLS file to MinIO", e);
+        }
+        return videoPath;
     }
 
     private void sendJson(HttpServletResponse response, String json) {
