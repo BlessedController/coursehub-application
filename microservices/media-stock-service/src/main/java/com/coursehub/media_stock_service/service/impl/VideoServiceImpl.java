@@ -284,6 +284,7 @@ public class VideoServiceImpl implements VideoService {
     }
 
     private void addResponseHeaders(HttpURLConnection conn, HttpServletResponse response) throws IOException {
+
         response.setStatus(conn.getResponseCode());
 
         conn.getHeaderFields().forEach((key, values) -> {
@@ -295,30 +296,34 @@ public class VideoServiceImpl implements VideoService {
     }
 
     private HttpURLConnection getConnection(String presignedUrl, HttpServletRequest request) throws IOException {
+
         String range = request.getHeader(RANGE_HEADER);
 
-        HttpURLConnection conn = (HttpURLConnection)
-                URI.create(presignedUrl).toURL().openConnection();
+        HttpURLConnection conn = (HttpURLConnection) URI.create(presignedUrl).toURL().openConnection();
 
         if (range != null) {
             conn.setRequestProperty(RANGE_HEADER, range);
         }
 
-        conn.setRequestProperty("Connection", "close"); // Important for streaming stability
+        conn.setRequestProperty("Connection", "close");
         conn.setReadTimeout(30000);
         conn.setConnectTimeout(10000);
         conn.connect();
+
         return conn;
     }
 
     private void streamData(HttpURLConnection conn, HttpServletResponse response) throws IOException {
         try (InputStream is = conn.getInputStream();
+
              OutputStream os = response.getOutputStream()) {
 
             byte[] buffer = new byte[8192];
+
             int len;
 
             while ((len = is.read(buffer)) != -1) {
+
                 os.write(buffer, 0, len);
 
                 os.flush();
