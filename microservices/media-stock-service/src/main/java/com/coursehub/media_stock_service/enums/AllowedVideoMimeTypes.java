@@ -10,8 +10,8 @@ public enum AllowedVideoMimeTypes {
 
     VIDEO_MP4("video/mp4", "mp4"),
     VIDEO_MPEG("video/mpeg", "mpeg"),
-    VIDEO_AVI("video/avi", "avi"),
-    ;
+    VIDEO_MOV("video/mov", "mov"),
+    VIDEO_AVI("video/avi", "avi");
 
     private final String mimeType;
     private final String extension;

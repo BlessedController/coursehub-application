@@ -44,10 +44,6 @@ public class VideoController {
             HttpServletRequest request,
             HttpServletResponse response) {
 
-        System.out.println("================================");
-        System.out.println("REQUEST URI: " + request.getRequestURI());
-        System.out.println("================================");
-
         videoService.streamVideo(principal, creatorId, courseId, videoPath, request, response);
         return status(OK).build();
     }

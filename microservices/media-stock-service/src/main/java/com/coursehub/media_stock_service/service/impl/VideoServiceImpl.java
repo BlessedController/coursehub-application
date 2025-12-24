@@ -19,6 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.AntPathMatcher;
+import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.HandlerMapping;
 
@@ -29,6 +30,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Stream;
 
 import static java.lang.Boolean.TRUE;
@@ -49,61 +52,62 @@ public class VideoServiceImpl implements VideoService {
     private static final String HLS_STREAM_TEMP_DIR_NAME = "hls_stream_";
     private static final long PRESIGNED_CACHE_TTL_SECONDS = 30;
     private static final int PRESIGNED_URL_EXPRIY_SECONDS = 600;
-
+    private final ExecutorService videoExecutor = Executors.newFixedThreadPool(2);
 
     @Value("${minio.course-videos-bucket}")
     private String courseVideosBucketName;
 
 
     @Override
-    public void uploadVideoFile(MultipartFile file,
-                                String courseId,
-                                String displayName,
-                                UserPrincipal principal) {
-
+    public void uploadVideoFile(MultipartFile file, String courseId, String displayName, UserPrincipal principal) {
 
         this.validateCourseOwner(courseId, principal.getId());
+
         this.validateVideoFile(file);
-        Path tempDir = null;
 
         try {
-            tempDir = Files.createTempDirectory(HLS_STREAM_TEMP_DIR_NAME);
-            log.info("Temp HLS dir created: {}", tempDir);
+            Path tempRawFile = Files.createTempFile("raw_upload_", ".tmp");
 
-            ProcessBuilder pb = this.getProcessBuilder(tempDir);
+            file.transferTo(tempRawFile);
 
-            Process process = pb.start();
+            log.info("Dosya geçici olarak diske yazıldı: {}", tempRawFile);
 
-            this.writeLogs(process.getInputStream());
+            videoExecutor.submit(() -> {
+                Path hlsTempDir = null;
+                try {
+                    hlsTempDir = Files.createTempDirectory(HLS_STREAM_TEMP_DIR_NAME);
 
-            this.transferVideoFileToFfmpeg(process, file);
+                    ProcessBuilder pb = this.getProcessBuilder(hlsTempDir, tempRawFile);
 
-            int exitCode = process.waitFor();
+                    Process process = pb.start();
 
-            if (exitCode != 0) {
-                throw new FileOperationException("FFmpeg failed with exit code: " + exitCode);
-            }
+                    this.writeLogs(process.getInputStream());
 
-            log.info("FFmpeg finished successfully for courseId={}", courseId);
+                    int exitCode = process.waitFor();
+                    if (exitCode == 0) {
+                        String videoPath = this.uploadToMinio(principal, courseId, hlsTempDir);
 
-            String videoPath = this.uploadToMinio(principal, courseId, tempDir);
+                        AddVideoToCourseEvent event = AddVideoToCourseEvent.builder()
+                                .videoPath(videoPath)
+                                .courseId(courseId)
+                                .displayName(displayName)
+                                .build();
 
-            AddVideoToCourseEvent event = AddVideoToCourseEvent.builder()
-                    .displayName(displayName)
-                    .courseId(courseId)
-                    .videoPath(videoPath)
-                    .build();
+                        kafkaPublisher.publishEvent(event);
+                    }
+                } catch (Exception e) {
+                    log.error("Arka plan işlemleri başarısız: {}", e.getMessage());
+                } finally {
+                    this.deleteTempFolder(hlsTempDir);
+                    try {
+                        Files.deleteIfExists(tempRawFile);
+                    } catch (Exception ignored) {
+                    }
+                }
+            });
 
-            kafkaPublisher.publishEvent(event);
-
-        } catch (Exception e) {
-            log.error("Streaming HLS processing failed: {}", e.getMessage(), e);
-            throw new FileOperationException("Streaming HLS processing failed", e);
-        } finally {
-            // 9) Temp klasörü her durumda temizlemeyi dene
-            if (tempDir != null) {
-                this.deleteTempFolder(tempDir);
-            }
+        } catch (IOException e) {
+            throw new FileOperationException("Dosya sisteme kaydedilemedi", e);
         }
     }
 
@@ -153,31 +157,13 @@ public class VideoServiceImpl implements VideoService {
     }
 
     private String getMimeType(MultipartFile file) {
-        String original = file.getOriginalFilename();
+        String safeFileName = this.getSafeFileName(file.getOriginalFilename());
 
-        if (original == null || !original.contains(".")) {
-            throw new InvalidFileFormatException("File has no extension");
-        }
-
-        String ext = original.substring(original.lastIndexOf('.') + 1);
+        String ext = safeFileName.substring(safeFileName.lastIndexOf('.') + 1);
 
         return AllowedVideoMimeTypes.fromExtension(ext)
                 .map(AllowedVideoMimeTypes::getMimeType)
                 .orElseThrow(() -> new InvalidFileFormatException("Unsupported file type: " + ext));
-    }
-
-    private void transferVideoFileToFfmpeg(Process process, MultipartFile file) {
-        try (
-                OutputStream ffmpegOutputStream = process.getOutputStream();
-                InputStream fileInputStream = file.getInputStream()
-        ) {
-            fileInputStream.transferTo(ffmpegOutputStream);
-        } catch (IOException exception) {
-            throw new FileOperationException(
-                    "An error occurred during streaming video file to FFmpeg.",
-                    exception
-            );
-        }
     }
 
     private String uploadToMinio(UserPrincipal principal, String courseId, Path tempDir) {
@@ -436,15 +422,17 @@ public class VideoServiceImpl implements VideoService {
     }
 
 
-    private ProcessBuilder getProcessBuilder(Path tempDir) {
+    private ProcessBuilder getProcessBuilder(Path tempDir, Path rawVideoPath) {
 
         List<String> cmd = new ArrayList<>();
 
         cmd.add("ffmpeg");
-        cmd.add("-i");
-        cmd.add("pipe:0");
 
-        // 🔹 KEYFRAME AYARLARI
+        // 🔹 GİRİŞ DOSYASI: Artık pipe:0 yerine doğrudan dosya yolu
+        cmd.add("-i");
+        cmd.add(rawVideoPath.toString());
+
+        // 🔹 KEYFRAME AYARLARI (HLS segmentleri için hayati önem taşır)
         cmd.add("-g");
         cmd.add("48");
         cmd.add("-keyint_min");
@@ -452,13 +440,13 @@ public class VideoServiceImpl implements VideoService {
         cmd.add("-force_key_frames");
         cmd.add("expr:gte(t,n_forced*2)");
 
-        // 🔹 KALİTE PROFİLLERİNİ TEK SATIRDA EKLE
-        addQuality(cmd, 0, 1920, "3000k", "128k");  // 1080p
-        addQuality(cmd, 1, 1280, "1800k", "128k"); // 720p
-        addQuality(cmd, 2, 854, "900k", "96k");  // 480p
-        addQuality(cmd, 3, 640, "600k", "96k");  // 360p
+        // 🔹 KALİTE PROFİLLERİ
+        this.addQuality(cmd, 0, 1920, "3000k", "128k");  // 1080p
+        this.addQuality(cmd, 1, 1280, "1800k", "128k"); // 720p
+        this.addQuality(cmd, 2, 854, "900k", "96k");    // 480p
+        this.addQuality(cmd, 3, 640, "600k", "96k");    // 360p
 
-        // 🔹 STREAM MAPPING (TEKRAR YOK)
+        // 🔹 STREAM MAPPING
         for (int i = 0; i < 4; i++) {
             cmd.add("-map");
             cmd.add("0:v:0");
@@ -473,18 +461,27 @@ public class VideoServiceImpl implements VideoService {
         cmd.add("2");
         cmd.add("-hls_playlist_type");
         cmd.add("vod");
+
+        // Segmentlerin kaydedileceği klasör yapısı: v0, v1, v2, v3
         cmd.add("-hls_segment_filename");
-        cmd.add(tempDir + "/v%v/segment%d.ts");
+        cmd.add(tempDir.toString() + "/v%v/segment%d.ts");
+
+        // Ana playlist dosyasının adı
         cmd.add("-master_pl_name");
         cmd.add("master.m3u8");
+
+        // Video ve ses akışlarını eşleştirme
         cmd.add("-var_stream_map");
         cmd.add("v:0,a:0 v:1,a:1 v:2,a:2 v:3,a:3");
 
-        // 🔹 ÇIKTI PLAYLIST DOSYASI
+        // 🔹 ÇIKTI PLAYLIST DOSYASI YOLU
         cmd.add(tempDir + "/v%v/playlist.m3u8");
 
         ProcessBuilder pb = new ProcessBuilder(cmd);
+
+        // FFmpeg loglarını yakalayabilmek için hatayı ana akışa yönlendiriyoruz
         pb.redirectErrorStream(true);
+
         return pb;
     }
 
@@ -502,5 +499,31 @@ public class VideoServiceImpl implements VideoService {
         cmd.add(audioBitrate);
     }
 
+    private String getSafeFileName(String originalFileName) {
+        if (!StringUtils.hasText(originalFileName)) {
+            throw new IllegalArgumentException("Dosya adı boş olamaz.");
+        }
+
+        String cleanedPath = StringUtils.cleanPath(originalFileName);
+        if (cleanedPath.contains("..")) {
+            throw new IllegalArgumentException("Geçersiz dosya yolu tespit edildi!");
+        }
+
+        int lastDotIndex = cleanedPath.lastIndexOf(".");
+        if (lastDotIndex == -1 || lastDotIndex == cleanedPath.length() - 1) {
+            throw new IllegalArgumentException("Geçersiz dosya uzantısı.");
+        }
+
+        String nameWithoutExt = cleanedPath.substring(0, lastDotIndex);
+        String ext = cleanedPath.substring(lastDotIndex).toLowerCase();
+
+        if (!List.of(".mp4", ".mov", ".avi", ".mkv").contains(ext)) {
+            throw new IllegalArgumentException("Desteklenmeyen dosya formatı.");
+        }
+
+        String safeName = nameWithoutExt.replaceAll("[^a-zA-Z0-9-_]", "_");
+
+        return safeName + ext;
+    }
 
 }
