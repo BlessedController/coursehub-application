@@ -85,7 +85,7 @@ public class Course {
     List<Video> videos = new ArrayList<>();
 
     @Column
-    String profilePicture;
+    String posterPicture;
 
 
 }

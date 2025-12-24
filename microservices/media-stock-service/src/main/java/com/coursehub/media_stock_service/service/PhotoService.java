@@ -7,7 +7,7 @@ public interface PhotoService {
 
     void uploadUserProfilePicture(MultipartFile file, UserPrincipal principal);
 
-    void uploadCourseProfilePicture(MultipartFile file, String courseId, UserPrincipal principal);
+    void uploadCoursePosterPicture(MultipartFile file, String courseId, UserPrincipal principal);
 
-    void uploadVideoProfilePicture(MultipartFile file, String courseId, String videoId, UserPrincipal principal);
+    void uploadVideoThumbnail(MultipartFile file, String courseId, String videoId, UserPrincipal principal);
 }

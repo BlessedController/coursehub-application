@@ -3,6 +3,7 @@ package com.coursehub.commons.security.filter;
 import com.coursehub.commons.security.model.UserPrincipal;
 import com.coursehub.commons.security.service.JwtUserAccessTokenService;
 import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
@@ -14,6 +15,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.servlet.HandlerExceptionResolver;
+
+import java.io.IOException;
 
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtUserAccessTokenService jwtUserAccessTokenService;
@@ -59,7 +62,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             filterChain.doFilter(request, response);
 
-        } catch (Exception ex) {
+        } catch (ServletException | IOException ex) {
             log.error("JwtAuthenticationFilter → Access token validation failed. Path: {}, Error: {}",
                     request.getRequestURI(),
                     ex.getMessage());

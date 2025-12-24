@@ -22,7 +22,7 @@ public class KafkaPublisher {
     }
 
 
-    public void publishEvent(AddProfilePictureToCourseEvent event) {
+    public void publishEvent(AddPosterPictureToCourseEvent event) {
         kafkaTemplate.send(ADD_COURSE_PROFILE_PHOTO_TOPIC, event.courseId(), event);
         log.info("Message sent to topic: {}", ADD_COURSE_PROFILE_PHOTO_TOPIC);
     }

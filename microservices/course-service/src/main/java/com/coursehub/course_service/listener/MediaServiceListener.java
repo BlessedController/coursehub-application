@@ -47,8 +47,8 @@ public class MediaServiceListener {
             groupId = "course-service-group",
             containerFactory = "kafkaAddCourseProfilePhotoListenerContainerFactory"
     )
-    public void listenAddVideoToCourseEvent(AddProfilePictureToCourseEvent event) {
-        log.info("🎬 Received AddProfilePictureToCourseEvent for courseId={}", event.profilePictureName());
+    public void listenAddVideoToCourseEvent(AddPosterPictureToCourseEvent event) {
+        log.info("🎬 Received AddProfilePictureToCourseEvent for courseId={}", event.posterPictureName());
         internalService.addProfilePictureToCourse(event);
     }
 

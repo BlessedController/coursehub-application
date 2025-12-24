@@ -35,13 +35,13 @@ public class KafkaConsumerConfig {
     }
 
     @Bean
-    public ConsumerFactory<String, AddProfilePictureToCourseEvent> addCourseProfilePhotoConsumerFactory() {
-        return new DefaultKafkaConsumerFactory<>(getConfig(), new StringDeserializer(), buildDeserializer(AddProfilePictureToCourseEvent.class));
+    public ConsumerFactory<String, AddPosterPictureToCourseEvent> addCourseProfilePhotoConsumerFactory() {
+        return new DefaultKafkaConsumerFactory<>(getConfig(), new StringDeserializer(), buildDeserializer(AddPosterPictureToCourseEvent.class));
     }
 
     @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, AddProfilePictureToCourseEvent> kafkaAddCourseProfilePhotoListenerContainerFactory() {
-        return buildFactory(AddProfilePictureToCourseEvent.class);
+    public ConcurrentKafkaListenerContainerFactory<String, AddPosterPictureToCourseEvent> kafkaAddCourseProfilePhotoListenerContainerFactory() {
+        return buildFactory(AddPosterPictureToCourseEvent.class);
     }
 
     @Bean

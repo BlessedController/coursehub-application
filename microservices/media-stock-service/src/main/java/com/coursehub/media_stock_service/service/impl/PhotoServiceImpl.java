@@ -73,7 +73,7 @@ public class PhotoServiceImpl implements PhotoService {
     }
 
     @Override
-    public void uploadCourseProfilePicture(MultipartFile file, String courseId, UserPrincipal principal) {
+    public void uploadCoursePosterPicture(MultipartFile file, String courseId, UserPrincipal principal) {
 
         try {
             this.validateCourseBelongUser(courseId, principal.getId());
@@ -97,7 +97,10 @@ public class PhotoServiceImpl implements PhotoService {
 
             minioClient.putObject(putObjectArgs);
 
-            AddProfilePictureToCourseEvent event = new AddProfilePictureToCourseEvent(courseId, objectName);
+            AddPosterPictureToCourseEvent event = AddPosterPictureToCourseEvent.builder()
+                    .courseId(courseId)
+                    .posterPictureName(objectName)
+                    .build();
 
             kafkaPublisher.publishEvent(event);
 
@@ -107,7 +110,7 @@ public class PhotoServiceImpl implements PhotoService {
     }
 
     @Override
-    public void uploadVideoProfilePicture(MultipartFile file, String courseId, String videoId, UserPrincipal principal) {
+    public void uploadVideoThumbnail(MultipartFile file, String courseId, String videoId, UserPrincipal principal) {
 
         try {
             this.validateCourseBelongUser(courseId, principal.getId());

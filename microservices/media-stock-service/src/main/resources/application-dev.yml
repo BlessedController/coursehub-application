@@ -11,8 +11,8 @@ spring:
 
 minio:
   user-profile-photo-bucket: user-profile-pictures
-  course-profile-photo-bucket: course-profile-pictures
-  video-profile-photo-bucket: video-profile-pictures
+  course-profile-photo-bucket: course-thumbnails
+  video-profile-photo-bucket: video-thumbnails
   course-videos-bucket: course-videos
 
   url: http://localhost:9000

@@ -27,28 +27,28 @@ public class PhotoController {
         return ResponseEntity.ok().build();
     }
 
-    @PostMapping(value = "/course-profile-picture-upload/", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Void> uploadCourseProfilePicture(@RequestParam(name = "file") MultipartFile file,
-                                                           @RequestParam(name = "courseId") String courseId,
-                                                           @AuthenticationPrincipal UserPrincipal principal
+    @PostMapping(value = "/course-poster-picture-upload/", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Void> uploadCoursePosterPicture(@RequestParam(name = "file") MultipartFile file,
+                                                          @RequestParam(name = "courseId") String courseId,
+                                                          @AuthenticationPrincipal UserPrincipal principal
 
     ) {
 
-        photoService.uploadCourseProfilePicture(file, courseId, principal);
+        photoService.uploadCoursePosterPicture(file, courseId, principal);
 
         return ResponseEntity.ok().build();
     }
 
 
-    @PostMapping(value = "/video-profile-picture-upload/", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Void> uploadVideoProfilePicture(@RequestParam(name = "file") MultipartFile file,
-                                                          @RequestParam(name = "courseId") String courseId,
-                                                          @RequestParam(name = "videoId") String videoId,
-                                                          @AuthenticationPrincipal UserPrincipal principal
+    @PostMapping(value = "/video-thumbnail-upload/", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Void> uploadVideoThumbnail(@RequestParam(name = "file") MultipartFile file,
+                                                     @RequestParam(name = "courseId") String courseId,
+                                                     @RequestParam(name = "videoId") String videoId,
+                                                     @AuthenticationPrincipal UserPrincipal principal
 
     ) {
 
-        photoService.uploadVideoProfilePicture(file, courseId, videoId, principal);
+        photoService.uploadVideoThumbnail(file, courseId, videoId, principal);
 
         return ResponseEntity.ok().build();
     }

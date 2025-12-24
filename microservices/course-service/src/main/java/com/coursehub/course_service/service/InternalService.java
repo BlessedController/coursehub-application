@@ -22,7 +22,7 @@ public interface InternalService {
 
     CoursePriceResponse getPublishedCoursePrice(String courseId);
 
-    void addProfilePictureToCourse(AddProfilePictureToCourseEvent event);
+    void addProfilePictureToCourse(AddPosterPictureToCourseEvent event);
 
     void addProfilePictureToVideo(AddProfilePictureToVideoEvent event);
 

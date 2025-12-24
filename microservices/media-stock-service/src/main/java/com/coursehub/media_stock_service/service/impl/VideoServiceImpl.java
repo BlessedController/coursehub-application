@@ -11,7 +11,6 @@ import com.coursehub.media_stock_service.service.VideoService;
 import com.coursehub.media_stock_service.util.RedisUtil;
 import io.minio.*;
 import io.minio.errors.ErrorResponseException;
-import io.minio.http.Method;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -24,8 +23,6 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.HandlerMapping;
 
 import java.io.*;
-import java.net.HttpURLConnection;
-import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.temporal.ChronoUnit;
@@ -85,10 +82,14 @@ public class VideoServiceImpl implements VideoService {
 
                     int exitCode = process.waitFor();
                     if (exitCode == 0) {
+
+                        double videoDuration = this.getVideoDuration(tempRawFile);
+
                         String videoPath = this.uploadToMinio(principal, courseId, hlsTempDir);
 
                         AddVideoToCourseEvent event = AddVideoToCourseEvent.builder()
                                 .videoPath(videoPath)
+                                .videoDuration(videoDuration)
                                 .courseId(courseId)
                                 .displayName(displayName)
                                 .build();
@@ -111,6 +112,9 @@ public class VideoServiceImpl implements VideoService {
         }
     }
 
+    @Override
+    public void deleteVideoFile(UserPrincipal principal, String courseId, String videoId) {
+    }
 
     @Override
     public void streamVideo(
@@ -138,13 +142,30 @@ public class VideoServiceImpl implements VideoService {
                 creatorId + "/" + courseId + "/" + videoPath + "/" + remaining;
 
         try {
-            String presignedUrl = this.getPresignedUrl(objectPath);
 
-            HttpURLConnection conn = this.getConnection(presignedUrl, request);
+            StatObjectResponse videoMetadata;
 
-            this.addResponseHeaders(conn, response);
+            if (remaining.endsWith("ts")) {
+                response.setContentType("video/MP2T");
 
-            this.streamData(conn, response);
+                String sizeKey = remaining + "-size-" + videoPath;
+
+                Long size = redisUtil.getDataFromCache(sizeKey);
+
+                if (size == null) {
+                    videoMetadata = this.getVideoMetadata(objectPath);
+                    size = videoMetadata.size();
+                    redisUtil.saveToCache(sizeKey, size, 1L, ChronoUnit.HOURS);
+                }
+                response.setContentLengthLong(size);
+            } else {
+                videoMetadata = this.getVideoMetadata(objectPath);
+                this.addResponseHeaders(videoMetadata, response);
+            }
+
+            GetObjectArgs objectArgs = this.getObjectArgs(objectPath, request.getHeader(RANGE_HEADER));
+
+            this.streamData(objectArgs, response);
 
         } catch (NotFoundException e) {
             response.setStatus(HttpServletResponse.SC_NOT_FOUND);
@@ -154,6 +175,19 @@ public class VideoServiceImpl implements VideoService {
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             this.sendJson(response, "{\"error\":\"stream_failed\"}");
         }
+    }
+
+    public GetObjectArgs getObjectArgs(String objectName, String range) {
+
+        GetObjectArgs.Builder argsBuilder = GetObjectArgs.builder()
+                .bucket(courseVideosBucketName)
+                .object(objectName);
+
+        if (StringUtils.hasText(range)) {
+            argsBuilder.extraHeaders(Map.of("Range", range));
+        }
+
+        return argsBuilder.build();
     }
 
     private String getMimeType(MultipartFile file) {
@@ -180,23 +214,38 @@ public class VideoServiceImpl implements VideoService {
 
                         try (InputStream is = Files.newInputStream(path)) {
 
-                            minioClient.putObject(
-                                    PutObjectArgs.builder()
-                                            .bucket(courseVideosBucketName)
-                                            .object(objectName)
-                                            .stream(is, Files.size(path), -1)
-                                            .build()
-                            );
+                            String fileName = path.getFileName().toString();
+
+                            String contentType = "application/octet-stream";
+
+
+                            if (fileName.endsWith(".m3u8")) {
+                                contentType = "application/x-mpegURL";
+                            } else if (fileName.endsWith(".ts")) {
+                                contentType = "video/MP2T";
+                            }
+
+
+                            PutObjectArgs build = PutObjectArgs.builder()
+                                    .bucket(courseVideosBucketName)
+                                    .object(objectName)
+                                    .contentType(contentType)
+                                    .stream(is, Files.size(path), -1)
+                                    .build();
+
+                            minioClient.putObject(build);
 
                             log.info("Uploaded HLS chunk to MinIO: {}", objectName);
 
                         } catch (Exception e) {
-                            throw new FileOperationException("Failed to upload HLS file to MinIO", e);
+                            log.error("MinIO upload error! Path: {}, ObjectName: {}, Error: {}", path, objectName, e.getMessage());
+                            throw new FileOperationException("MinIO'ya yükleme sırasında hata oluştu: " + objectName, e);
                         }
 
                     }
             );
-        } catch (IOException e) {
+        } catch (
+                IOException e) {
             throw new FileOperationException("Failed to upload HLS file to MinIO", e);
         }
         return videoPath;
@@ -211,10 +260,6 @@ public class VideoServiceImpl implements VideoService {
     }
 
 
-    @Override
-    public void deleteVideoFile(UserPrincipal principal, String courseId, String videoId) {
-    }
-
     private String getRemainingFromPath(HttpServletRequest request) {
         String fullPath = (String) request.getAttribute(
                 HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE
@@ -228,98 +273,59 @@ public class VideoServiceImpl implements VideoService {
                 .extractPathWithinPattern(bestMatch, fullPath);
     }
 
+    private void addResponseHeaders(StatObjectResponse metadata, HttpServletResponse response) {
+        response.setContentType(metadata.contentType());
 
-    private String getPresignedUrl(String objectPath) {
+        response.setContentLengthLong(metadata.size());
 
-        String cacheKey = "presigned:" + objectPath;
-
-        String cachedValue = redisUtil.getDataFromCache(cacheKey);
-
-        if (cachedValue != null) return cachedValue;
-
-        try {
-
-            minioClient.statObject(
-                    StatObjectArgs.builder()
-                            .bucket(courseVideosBucketName)
-                            .object(objectPath)
-                            .build()
-            );
-
-            String presignedUrl = minioClient.getPresignedObjectUrl(
-                    GetPresignedObjectUrlArgs.builder()
-                            .bucket(courseVideosBucketName)
-                            .object(objectPath)
-                            .method(Method.GET)
-                            .expiry(PRESIGNED_URL_EXPRIY_SECONDS)
-                            .build()
-            );
-
-            redisUtil.saveToCache(cacheKey, presignedUrl, PRESIGNED_CACHE_TTL_SECONDS, ChronoUnit.SECONDS);
-
-            return presignedUrl;
-
-        } catch (ErrorResponseException e) {
-            if ("NoSuchKey".equals(e.errorResponse().code())) {
-                throw new NotFoundException("Requested video file not found: " + objectPath);
-            }
-            throw new StreamingException("Failed to access MinIO");
-        } catch (Exception e) {
-            throw new StreamingException("Failed to access MinIO");
-        }
-    }
-
-    private void addResponseHeaders(HttpURLConnection conn, HttpServletResponse response) throws IOException {
-
-        response.setStatus(conn.getResponseCode());
-
-        conn.getHeaderFields().forEach((key, values) -> {
-            if (key != null && values != null) {
-                values.forEach(v -> response.addHeader(key, v));
+        metadata.headers().names().forEach(name -> {
+            if (!name.equalsIgnoreCase("Content-Type") && !name.equalsIgnoreCase("Content-Length")) {
+                response.addHeader(name, metadata.headers().get(name));
             }
         });
-
     }
 
-    private HttpURLConnection getConnection(String presignedUrl, HttpServletRequest request) throws IOException {
 
-        String range = request.getHeader(RANGE_HEADER);
-
-        HttpURLConnection conn = (HttpURLConnection) URI.create(presignedUrl).toURL().openConnection();
-
-        if (range != null) {
-            conn.setRequestProperty(RANGE_HEADER, range);
+    private StatObjectResponse getVideoMetadata(String objectName) {
+        try {
+            return minioClient.statObject(
+                    StatObjectArgs.builder()
+                            .bucket(courseVideosBucketName)
+                            .object(objectName)
+                            .build()
+            );
+        } catch (ErrorResponseException e) {
+            if ("NoSuchKey".equals(e.errorResponse().code())) {
+                log.error("Dosya MinIO üzerinde bulunamadı: {}", objectName);
+                throw new NotFoundException("Video dosyası mevcut değil: " + objectName);
+            }
+            throw new NotFoundException("MinIO hata yanıtı döndürdü: " + e.getMessage());
+        } catch (Exception e) {
+            log.error("Meta veri çekilirken beklenmedik hata: {}", e.getMessage());
+            throw new NotFoundException("Video meta verisi alınamadı");
         }
-
-        conn.setRequestProperty("Connection", "close");
-        conn.setReadTimeout(30000);
-        conn.setConnectTimeout(10000);
-        conn.connect();
-
-        return conn;
     }
 
-    private void streamData(HttpURLConnection conn, HttpServletResponse response) throws IOException {
-        try (InputStream is = conn.getInputStream();
-
-             OutputStream os = response.getOutputStream()) {
+    private void streamData(GetObjectArgs args, HttpServletResponse response) {
+        try (
+                InputStream is = minioClient.getObject(args);
+                OutputStream os = response.getOutputStream()
+        ) {
 
             byte[] buffer = new byte[8192];
 
             int len;
 
             while ((len = is.read(buffer)) != -1) {
-
                 os.write(buffer, 0, len);
-
-                os.flush();
-                response.flushBuffer();
             }
-
             os.flush();
+            response.flushBuffer();
+
+        } catch (Exception e) {
+            throw new StreamingException("Failed to access MinIO");
         }
     }
-
 
     private void writeLogs(InputStream inputStream) {
 
@@ -413,6 +419,7 @@ public class VideoServiceImpl implements VideoService {
                     .getBody();
 
             if (!TRUE.equals(hasEnrolledByUser) && !TRUE.equals(isUserCourseOwner)) {
+                log.error("Access denied exception throwed for course id:{} and user id: {}", courseId, userId);
                 throw new AccessDeniedException("Only the user who enroll this course can perform this action.");
             }
         } catch (feign.RetryableException e) {
@@ -526,4 +533,22 @@ public class VideoServiceImpl implements VideoService {
         return safeName + ext;
     }
 
+    private double getVideoDuration(Path videoPath) {
+        try {
+            ProcessBuilder pb = new ProcessBuilder(
+                    "ffprobe", "-v", "error", "-show_entries", "format=duration",
+                    "-of", "default=noprint_wrappers=1:nokey=1", videoPath.toString()
+            );
+
+            Process p = pb.start();
+
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
+                String line = reader.readLine();
+                return line != null ? Double.parseDouble(line) : 0;
+            }
+        } catch (Exception e) {
+            log.error("Video süresi alınamadı: {}", e.getMessage());
+            return 0;
+        }
+    }
 }

@@ -74,10 +74,10 @@ public class InternalServiceImpl implements InternalService {
     }
 
     @Override
-    public void addProfilePictureToCourse(AddProfilePictureToCourseEvent event) {
+    public void addProfilePictureToCourse(AddPosterPictureToCourseEvent event) {
         Course course = this.findCourseByIdAndStatusIn(event.courseId(), Set.of(CourseStatus.PUBLISHED, CourseStatus.PENDING));
 
-        course.setProfilePicture(event.profilePictureName());
+        course.setPosterPicture(event.posterPictureName());
 
         courseRepository.save(course);
     }
