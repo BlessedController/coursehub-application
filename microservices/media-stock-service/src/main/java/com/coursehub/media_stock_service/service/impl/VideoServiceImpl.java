@@ -435,11 +435,9 @@ public class VideoServiceImpl implements VideoService {
 
         cmd.add("ffmpeg");
 
-        // 🔹 GİRİŞ DOSYASI: Artık pipe:0 yerine doğrudan dosya yolu
         cmd.add("-i");
         cmd.add(rawVideoPath.toString());
 
-        // 🔹 KEYFRAME AYARLARI (HLS segmentleri için hayati önem taşır)
         cmd.add("-g");
         cmd.add("48");
         cmd.add("-keyint_min");
@@ -447,13 +445,11 @@ public class VideoServiceImpl implements VideoService {
         cmd.add("-force_key_frames");
         cmd.add("expr:gte(t,n_forced*2)");
 
-        // 🔹 KALİTE PROFİLLERİ
-        this.addQuality(cmd, 0, 1920, "3000k", "128k");  // 1080p
-        this.addQuality(cmd, 1, 1280, "1800k", "128k"); // 720p
-        this.addQuality(cmd, 2, 854, "900k", "96k");    // 480p
-        this.addQuality(cmd, 3, 640, "600k", "96k");    // 360p
+        this.addQuality(cmd, 0, 1920, "3000k", "128k");
+        this.addQuality(cmd, 1, 1280, "1800k", "128k");
+        this.addQuality(cmd, 2, 854, "900k", "96k");
+        this.addQuality(cmd, 3, 640, "600k", "96k");
 
-        // 🔹 STREAM MAPPING
         for (int i = 0; i < 4; i++) {
             cmd.add("-map");
             cmd.add("0:v:0");
@@ -461,7 +457,6 @@ public class VideoServiceImpl implements VideoService {
             cmd.add("0:a:0");
         }
 
-        // 🔹 HLS AYARLARI
         cmd.add("-f");
         cmd.add("hls");
         cmd.add("-hls_time");
@@ -469,24 +464,19 @@ public class VideoServiceImpl implements VideoService {
         cmd.add("-hls_playlist_type");
         cmd.add("vod");
 
-        // Segmentlerin kaydedileceği klasör yapısı: v0, v1, v2, v3
         cmd.add("-hls_segment_filename");
         cmd.add(tempDir.toString() + "/v%v/segment%d.ts");
 
-        // Ana playlist dosyasının adı
         cmd.add("-master_pl_name");
         cmd.add("master.m3u8");
 
-        // Video ve ses akışlarını eşleştirme
         cmd.add("-var_stream_map");
         cmd.add("v:0,a:0 v:1,a:1 v:2,a:2 v:3,a:3");
 
-        // 🔹 ÇIKTI PLAYLIST DOSYASI YOLU
         cmd.add(tempDir + "/v%v/playlist.m3u8");
 
         ProcessBuilder pb = new ProcessBuilder(cmd);
 
-        // FFmpeg loglarını yakalayabilmek için hatayı ana akışa yönlendiriyoruz
         pb.redirectErrorStream(true);
 
         return pb;
