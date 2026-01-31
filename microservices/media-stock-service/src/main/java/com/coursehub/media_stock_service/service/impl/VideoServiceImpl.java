@@ -27,8 +27,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.stream.Stream;
 
 import static java.lang.Boolean.TRUE;
@@ -47,66 +45,116 @@ public class VideoServiceImpl implements VideoService {
     private static final String FILE_SEPARATOR = "/";
     private static final String RANGE_HEADER = "Range";
     private static final String HLS_STREAM_TEMP_DIR_NAME = "hls_stream_";
-    private final ExecutorService videoExecutor = Executors.newFixedThreadPool(2);
+    private static final String RAW_TEMP_FILE_PREFIX = "raw_upload_";
+    private static final String RAW_TEMP_FILE_SUFFIX = ".tmp";
 
     @Value("${minio.course-videos-bucket}")
     private String courseVideosBucketName;
 
+
     @Override
     public void uploadVideoFile(MultipartFile file, String courseId, String displayName, UserPrincipal principal) {
-
         this.validateCourseOwner(courseId, principal.getId());
-
         this.validateVideoFile(file);
-
         try {
-            Path tempRawFile = Files.createTempFile("raw_upload_", ".tmp");
+            Path hlsTempDir = Files.createTempDirectory(HLS_STREAM_TEMP_DIR_NAME);
 
-            file.transferTo(tempRawFile);
+            Path tempRawFile = this.createTempVideoFile(file);
 
-            log.info("File writed to disc temporary: {}", tempRawFile);
+            int exitCode = this.doProcessOnVideoFile(hlsTempDir, tempRawFile);
 
-            videoExecutor.submit(() -> {
-                Path hlsTempDir = null;
-                try {
-                    hlsTempDir = Files.createTempDirectory(HLS_STREAM_TEMP_DIR_NAME);
-
-                    ProcessBuilder pb = this.getProcessBuilder(hlsTempDir, tempRawFile);
-
-                    Process process = pb.start();
-
-                    this.writeLogs(process.getInputStream());
-
-                    int exitCode = process.waitFor();
-                    if (exitCode == 0) {
-
-                        double videoDuration = this.getVideoDuration(tempRawFile);
-
-                        String videoPath = this.uploadToMinio(principal, courseId, hlsTempDir);
-
-                        AddVideoToCourseEvent event = AddVideoToCourseEvent.builder()
-                                .videoPath(videoPath)
-                                .videoDuration(videoDuration)
-                                .courseId(courseId)
-                                .displayName(displayName)
-                                .build();
-
-                        kafkaPublisher.publishEvent(event);
-                    }
-                } catch (Exception e) {
-                    log.error("ffmpeg process is failed: {}", e.getMessage());
-                } finally {
-                    this.deleteTempFolder(hlsTempDir);
-                    try {
-                        Files.deleteIfExists(tempRawFile);
-                    } catch (Exception ignored) {
-                    }
-                }
-            });
+            if (exitCode == 0) {
+                String randomVideoName = this.generateRandomVideoName();
+                this.uploadToMinio(randomVideoName, principal, courseId, hlsTempDir);
+                this.publishEvent(randomVideoName, tempRawFile, courseId, displayName);
+            }
 
         } catch (IOException e) {
-            throw new FileOperationException("File could not save disc", e);
+            log.error("IO exception occured: {}", e.getMessage());
+        } catch (InterruptedException e) {
+            log.error("Interrupt exception occured: {}", e.getMessage());
         }
+    }
+
+    private Path createTempVideoFile(MultipartFile file) throws IOException {
+        Path tempRawFile = Files.createTempFile(RAW_TEMP_FILE_PREFIX, RAW_TEMP_FILE_SUFFIX);
+        file.transferTo(tempRawFile);
+        return tempRawFile;
+    }
+
+
+    private int doProcessOnVideoFile(Path hlsTempDir, Path tempRawFile) throws InterruptedException, IOException {
+
+        ProcessBuilder pb = this.getProcessBuilder(hlsTempDir, tempRawFile);
+
+        Process process = pb.start();
+
+        this.writeLogs(process.getInputStream());
+
+        this.deleteTempFolder(hlsTempDir);
+
+        Files.deleteIfExists(tempRawFile);
+
+        return process.waitFor();
+    }
+
+    private ProcessBuilder getProcessBuilder(Path tempDir, Path rawVideoPath) {
+
+        List<String> cmd = new ArrayList<>();
+
+        cmd.add("ffmpeg");
+
+        cmd.add("-i");
+        cmd.add(rawVideoPath.toString());
+
+        cmd.add("-g");
+        cmd.add("48");
+        cmd.add("-keyint_min");
+        cmd.add("48");
+        cmd.add("-force_key_frames");
+        cmd.add("expr:gte(t,n_forced*2)");
+
+        this.addQuality(cmd, 0, 1920, "3000k", "128k");
+        this.addQuality(cmd, 1, 1280, "1800k", "128k");
+        this.addQuality(cmd, 2, 854, "900k", "96k");
+        this.addQuality(cmd, 3, 640, "600k", "96k");
+
+        for (int i = 0; i < 4; i++) {
+            cmd.add("-map");
+            cmd.add("0:v:0");
+            cmd.add("-map");
+            cmd.add("0:a:0");
+        }
+
+        cmd.add("-f");
+        cmd.add("hls");
+        cmd.add("-hls_time");
+        cmd.add("2");
+        cmd.add("-hls_playlist_type");
+        cmd.add("vod");
+
+        cmd.add("-hls_segment_filename");
+        cmd.add(tempDir.toString() + "/v%v/segment%d.ts");
+
+        cmd.add("-master_pl_name");
+        cmd.add("master.m3u8");
+
+        cmd.add("-var_stream_map");
+        cmd.add("v:0,a:0 v:1,a:1 v:2,a:2 v:3,a:3");
+
+        cmd.add(tempDir + "/v%v/playlist.m3u8");
+
+        ProcessBuilder pb = new ProcessBuilder(cmd);
+
+        pb.redirectErrorStream(true);
+
+        return pb;
+    }
+
+    private void publishEvent(String randomVideoName, Path tempRawFile, String courseId, String displayName) {
+        double videoDuration = this.getVideoDuration(tempRawFile);
+        AddVideoToCourseEvent event = this.getAddVideoToCourseEvent(randomVideoName, videoDuration, courseId, displayName);
+        kafkaPublisher.publishEvent(event);
     }
 
     @Override
@@ -170,6 +218,16 @@ public class VideoServiceImpl implements VideoService {
         }
     }
 
+    private AddVideoToCourseEvent getAddVideoToCourseEvent(String randomVideoName, double videoDuration, String courseId, String displayName) {
+        return AddVideoToCourseEvent.builder()
+                .videoPath(randomVideoName)
+                .videoDuration(videoDuration)
+                .courseId(courseId)
+                .displayName(displayName)
+                .build();
+    }
+
+
     public GetObjectArgs getObjectArgs(String objectName, String range) {
 
         GetObjectArgs.Builder argsBuilder = GetObjectArgs.builder()
@@ -193,10 +251,13 @@ public class VideoServiceImpl implements VideoService {
                 .orElseThrow(() -> new InvalidFileFormatException("Unsupported file type: " + ext));
     }
 
-    private String uploadToMinio(UserPrincipal principal, String courseId, Path tempDir) {
-        String videoPath = UUID.randomUUID().toString();
+    private String generateRandomVideoName() {
+        return UUID.randomUUID().toString();
+    }
 
-        String basePath = principal.getId() + FILE_SEPARATOR + courseId + FILE_SEPARATOR + videoPath + FILE_SEPARATOR;
+    private void uploadToMinio(String randomVideoName, UserPrincipal principal, String courseId, Path tempDir) {
+
+        String basePath = principal.getId() + FILE_SEPARATOR + courseId + FILE_SEPARATOR + randomVideoName + FILE_SEPARATOR;
 
         try (Stream<Path> pathStream = Files.walk(tempDir)) {
 
@@ -240,7 +301,6 @@ public class VideoServiceImpl implements VideoService {
         } catch (IOException e) {
             throw new FileOperationException("Failed to upload HLS file to MinIO", e);
         }
-        return videoPath;
     }
 
     private void sendJson(HttpServletResponse response, String json) {
@@ -418,60 +478,6 @@ public class VideoServiceImpl implements VideoService {
             throw new CustomFeignException(e.getMessage());
         }
 
-    }
-
-
-    private ProcessBuilder getProcessBuilder(Path tempDir, Path rawVideoPath) {
-
-        List<String> cmd = new ArrayList<>();
-
-        cmd.add("ffmpeg");
-
-        cmd.add("-i");
-        cmd.add(rawVideoPath.toString());
-
-        cmd.add("-g");
-        cmd.add("48");
-        cmd.add("-keyint_min");
-        cmd.add("48");
-        cmd.add("-force_key_frames");
-        cmd.add("expr:gte(t,n_forced*2)");
-
-        this.addQuality(cmd, 0, 1920, "3000k", "128k");
-        this.addQuality(cmd, 1, 1280, "1800k", "128k");
-        this.addQuality(cmd, 2, 854, "900k", "96k");
-        this.addQuality(cmd, 3, 640, "600k", "96k");
-
-        for (int i = 0; i < 4; i++) {
-            cmd.add("-map");
-            cmd.add("0:v:0");
-            cmd.add("-map");
-            cmd.add("0:a:0");
-        }
-
-        cmd.add("-f");
-        cmd.add("hls");
-        cmd.add("-hls_time");
-        cmd.add("2");
-        cmd.add("-hls_playlist_type");
-        cmd.add("vod");
-
-        cmd.add("-hls_segment_filename");
-        cmd.add(tempDir.toString() + "/v%v/segment%d.ts");
-
-        cmd.add("-master_pl_name");
-        cmd.add("master.m3u8");
-
-        cmd.add("-var_stream_map");
-        cmd.add("v:0,a:0 v:1,a:1 v:2,a:2 v:3,a:3");
-
-        cmd.add(tempDir + "/v%v/playlist.m3u8");
-
-        ProcessBuilder pb = new ProcessBuilder(cmd);
-
-        pb.redirectErrorStream(true);
-
-        return pb;
     }
 
 
