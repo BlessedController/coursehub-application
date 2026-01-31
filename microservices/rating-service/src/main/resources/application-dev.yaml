@@ -3,10 +3,6 @@ spring:
   config:
     activate:
       on-profile: dev
-  jpa:
-    hibernate:
-      ddl-auto: create
-    show-sql: true
 
   datasource:
     url: jdbc:postgresql://localhost:5435/ch_rts_dev_db

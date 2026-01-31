@@ -27,11 +27,9 @@ public class Video {
 
     String displayName;
 
-    @Column(nullable = false, unique = true)
     String videoPath;
 
     @Enumerated(STRING)
-    @Column(nullable = false)
     @Builder.Default
     VideoStatus status = PENDING;
 
@@ -39,6 +37,5 @@ public class Video {
     Course course;
 
     String profilePictureName;
-
 
 }

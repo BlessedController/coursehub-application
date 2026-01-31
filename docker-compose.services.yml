@@ -1,15 +1,5 @@
+name: coursehub_microservices
 services:
-
-  api-gateway-ms:
-    build:
-      context: ./microservices/api-gateway
-      dockerfile: Dockerfile
-    image: api-gateway-ms:1.0
-    container_name: api-gateway-ms
-    ports:
-      - "8080:8080"
-    networks:
-      - coursehub-net
 
   identity-ms:
     build:

@@ -16,6 +16,4 @@ public interface VideoService {
                      HttpServletRequest request,
                      HttpServletResponse response);
 
-    void deleteVideoFile(UserPrincipal principal, String courseId, String videoId);
-
 }

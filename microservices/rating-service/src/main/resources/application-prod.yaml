@@ -4,11 +4,6 @@ spring:
     activate:
       on-profile: prod
 
-  jpa:
-    hibernate:
-      ddl-auto: create
-    show-sql: true
-
   datasource:
     url: jdbc:postgresql://rating_service_postgres_prod:5432/ch_rts_prod_db
     username: ch_rts_prod_user

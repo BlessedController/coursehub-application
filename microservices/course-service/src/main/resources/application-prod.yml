@@ -4,11 +4,6 @@ spring:
     activate:
       on-profile: prod
 
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: true
-
   datasource:
     url: jdbc:postgresql://course_service_postgres_prod:5432/ch_cs_prod_db
     username: ch_cs_prod_user

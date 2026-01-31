@@ -47,13 +47,10 @@ public class VideoServiceImpl implements VideoService {
     private static final String FILE_SEPARATOR = "/";
     private static final String RANGE_HEADER = "Range";
     private static final String HLS_STREAM_TEMP_DIR_NAME = "hls_stream_";
-    private static final long PRESIGNED_CACHE_TTL_SECONDS = 30;
-    private static final int PRESIGNED_URL_EXPRIY_SECONDS = 600;
     private final ExecutorService videoExecutor = Executors.newFixedThreadPool(2);
 
     @Value("${minio.course-videos-bucket}")
     private String courseVideosBucketName;
-
 
     @Override
     public void uploadVideoFile(MultipartFile file, String courseId, String displayName, UserPrincipal principal) {
@@ -67,7 +64,7 @@ public class VideoServiceImpl implements VideoService {
 
             file.transferTo(tempRawFile);
 
-            log.info("Dosya geçici olarak diske yazıldı: {}", tempRawFile);
+            log.info("File writed to disc temporary: {}", tempRawFile);
 
             videoExecutor.submit(() -> {
                 Path hlsTempDir = null;
@@ -97,7 +94,7 @@ public class VideoServiceImpl implements VideoService {
                         kafkaPublisher.publishEvent(event);
                     }
                 } catch (Exception e) {
-                    log.error("Arka plan işlemleri başarısız: {}", e.getMessage());
+                    log.error("ffmpeg process is failed: {}", e.getMessage());
                 } finally {
                     this.deleteTempFolder(hlsTempDir);
                     try {
@@ -108,12 +105,8 @@ public class VideoServiceImpl implements VideoService {
             });
 
         } catch (IOException e) {
-            throw new FileOperationException("Dosya sisteme kaydedilemedi", e);
+            throw new FileOperationException("File could not save disc", e);
         }
-    }
-
-    @Override
-    public void deleteVideoFile(UserPrincipal principal, String courseId, String videoId) {
     }
 
     @Override
@@ -239,13 +232,12 @@ public class VideoServiceImpl implements VideoService {
 
                         } catch (Exception e) {
                             log.error("MinIO upload error! Path: {}, ObjectName: {}, Error: {}", path, objectName, e.getMessage());
-                            throw new FileOperationException("MinIO'ya yükleme sırasında hata oluştu: " + objectName, e);
+                            throw new FileOperationException("An error ocurred during upload to minio: " + objectName, e);
                         }
 
                     }
             );
-        } catch (
-                IOException e) {
+        } catch (IOException e) {
             throw new FileOperationException("Failed to upload HLS file to MinIO", e);
         }
         return videoPath;

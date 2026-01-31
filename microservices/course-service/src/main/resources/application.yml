@@ -2,6 +2,11 @@ spring:
   application:
     name: course-service
 
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+
 course-service:
   public-base-url: /v1/api/courses/public
   admin-base-url: /v1/api/courses/admin

@@ -4,13 +4,6 @@ spring:
     activate:
       on-profile: dev
 
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: true
-
-
-
   datasource:
     url: jdbc:postgresql://localhost:5433/ch_cs_dev_db
     username: ch_cs_dev_user

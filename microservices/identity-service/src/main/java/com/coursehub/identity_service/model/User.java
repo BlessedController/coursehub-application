@@ -30,75 +30,56 @@ import static lombok.AccessLevel.PRIVATE;
 public class User {
 
     @Id
-    @Column(nullable = false, updatable = false)
     @GeneratedValue(strategy = UUID)
     String id;
 
-    @Column(nullable = false, unique = true)
     String username;
 
-    @Column(nullable = false, unique = true)
     String email;
 
-    @Column(unique = true, length = 30)
     String phoneNumber;
 
-    @Column(nullable = false)
     String password;
 
-    @Column
     String firstName;
 
-    @Column(length = 50)
     String lastName;
 
-    @Column(unique = true)
     String activationCode;
 
-    @Column
     String tempCode;
 
-    @Column
     LocalDateTime tempCodeExpiresAt;
 
-    @Column
-    @Enumerated(STRING)
+    @Enumerated(EnumType.STRING)
     Gender gender;
 
-    @Column
     String aboutMe;
 
-    @Column
     @Builder.Default
     Double rating = 0.0;
 
-    @Column
     @Builder.Default
     int ratingCount = 0;
 
-    @Enumerated(STRING)
     @Builder.Default
-    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
     UserRole userRole = ROLE_USER;
 
-    @Enumerated(STRING)
     @Builder.Default
-    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
     UserStatus userStatus = ACTIVE;
 
-    @Column
     @Builder.Default
     Boolean isVerified = FALSE;
 
     @CreationTimestamp
-    @Column(updatable = false, nullable = false)
+    @Column(updatable = false)
     LocalDateTime createdAt;
 
     @UpdateTimestamp
-    @Column(nullable = false)
     LocalDateTime updatedAt;
 
-    @Column
     String profilePictureName;
 
 }

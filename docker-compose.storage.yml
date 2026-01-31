@@ -1,5 +1,5 @@
+name: coursehub_infra_storage
 services:
-
   minio:
     image: minio/minio:latest
     container_name: coursehub-minio

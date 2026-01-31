@@ -3,6 +3,12 @@ spring:
   application:
     name: identity-service
 
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+
   mail:
     host: smtp.gmail.com
     port: 587

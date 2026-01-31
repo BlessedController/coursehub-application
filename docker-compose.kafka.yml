@@ -1,3 +1,4 @@
+name: coursehub_infra_kafka
 services:
 
   coursehub-zookeeper:

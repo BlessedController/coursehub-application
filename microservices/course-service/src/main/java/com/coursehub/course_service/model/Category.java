@@ -21,15 +21,12 @@ import static lombok.AccessLevel.PRIVATE;
 @FieldDefaults(level = PRIVATE)
 public class Category {
 
-    //todo: add generated value immediately
     @Id
-//    @GeneratedValue(strategy = GenerationType.UUID)
+    @GeneratedValue(strategy = GenerationType.UUID)
     String id;
 
-    @Column(nullable = false)
     String name;
 
-    @Column(nullable = false)
     @Enumerated(STRING)
     @Builder.Default
     CategoryStatus status = INACTIVE;

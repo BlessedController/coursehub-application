@@ -1,3 +1,4 @@
+name: coursehub_prod_databases
 services:
 
   identity_service_postgres_prod:

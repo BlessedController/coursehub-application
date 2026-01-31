@@ -32,3 +32,6 @@ media-stock-service:
 redis:
   server:
     url: redis://coursehub-redis:6379
+
+kafka:
+  bootstrap-servers: coursehub-kafka:9092

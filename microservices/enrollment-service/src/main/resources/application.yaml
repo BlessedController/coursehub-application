@@ -2,6 +2,12 @@ spring:
   application:
     name: enrollment-service
 
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+
 enrollment-service:
   enrollment-controller-base-url: /v1/api/enrollments/user
   internal-controller-base-url: /v1/api/enrollments/internal

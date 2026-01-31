@@ -2,6 +2,11 @@ spring:
   application:
     name: rating-service
 
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+
 server:
   port: 8085
 

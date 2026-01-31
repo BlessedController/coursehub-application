@@ -33,41 +33,32 @@ public class Course {
     @GeneratedValue(strategy = UUID)
     String id;
 
-    @Column(nullable = false, length = 150)
     String title;
 
     @Column(name = "TEXT", nullable = false, length = 1000)
     String description;
 
-    @Column(nullable = false)
     String instructorId;
 
-    @Column(nullable = false)
     BigDecimal price;
 
-    @Column(nullable = false)
     @Enumerated(STRING)
     Currency currency;
 
     @Builder.Default
-    @Column(nullable = false)
     @Enumerated(STRING)
     CourseStatus status = PENDING;
 
     @CreationTimestamp
-    @Column(nullable = false)
     LocalDateTime createdAt;
 
     @UpdateTimestamp
-    @Column(nullable = false)
     LocalDateTime updatedAt;
 
     @Builder.Default
-    @Column(nullable = false)
     Double rating = 0.0;
 
     @Builder.Default
-    @Column(nullable = false)
     int ratingCount = 0;
 
     @Builder.Default
@@ -86,6 +77,5 @@ public class Course {
 
     @Column
     String posterPicture;
-
 
 }
