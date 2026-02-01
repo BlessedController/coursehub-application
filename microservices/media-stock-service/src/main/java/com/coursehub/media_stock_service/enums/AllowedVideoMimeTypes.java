@@ -27,7 +27,7 @@ public enum AllowedVideoMimeTypes {
                     .collect(Collectors.toSet());
 
 
-    public static boolean isVideoMimeTypeAllowed(String mimeType) {
+    public static boolean isValidVideoMimeType(String mimeType) {
         return ALLOWED_MIME_TYPES.contains(mimeType.toLowerCase());
     }
 
