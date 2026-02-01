@@ -122,7 +122,7 @@ public class VideoProcessingServiceImpl implements VideoProcessingService {
 
     private int doProcessOnVideoFile(Path hlsTempDir, Path tempRawFile) {
 
-        ProcessBuilder pb = this.getProcessBuilder(hlsTempDir, tempRawFile);
+        ProcessBuilder pb = this.createFFMPEGCommands(hlsTempDir, tempRawFile);
 
         Process process;
         try {
@@ -138,70 +138,174 @@ public class VideoProcessingServiceImpl implements VideoProcessingService {
         }
     }
 
-    private ProcessBuilder getProcessBuilder(Path tempDir, Path rawVideoPath) {
+    /**
+     ffmpeg \
+     -i input.mp4 \
+     -g 48 \
+     -keyint_min 48 \
+     -force_key_frames expr:gte(t,n_forced*2) \
+     -filter:v:0 scale=w=1920:h=-2 -c:v:0 libx264 -b:v:0 3000k -c:a:0 aac -b:a:0 128k \
+     -filter:v:1 scale=w=1280:h=-2 -c:v:1 libx264 -b:v:1 1800k -c:a:1 aac -b:a:1 128k \
+     -filter:v:2 scale=w=854:h=-2  -c:v:2 libx264 -b:v:2 900k  -c:a:2 aac -b:a:2 96k \
+     -filter:v:3 scale=w=640:h=-2  -c:v:3 libx264 -b:v:3 600k  -c:a:3 aac -b:a:3 96k \
+     -map 0:v:0 -map 0:a:0 \
+     -map 0:v:0 -map 0:a:0 \
+     -map 0:v:0 -map 0:a:0 \
+     -map 0:v:0 -map 0:a:0 \
+     -f hls \
+     -hls_time 2 \
+     -hls_playlist_type vod \
+     -hls_segment_filename /tmp/v%v/segment%d.ts \
+     -master_pl_name master.m3u8 \
+     -var_stream_map "v:0,a:0 v:1,a:1 v:2,a:2 v:3,a:3" \
+     /tmp/v%v/playlist.m3u8
+     */
+
+    /**
+     ffmpeg -i input.mp4 -g 48 -keyint_min 48 -force_key_frames expr:gte(t,n_forced*2) -filter:v:0 scale=w=1920:h=-2 -c:v:0 libx264 -b:v:0 3000k -c:a:0 aac -b:a:0 128k -filter:v:1 scale=w=1280:h=-2 -c:v:1 libx264 -b:v:1 1800k -c:a:1 aac -b:a:1 128k -filter:v:2 scale=w=854:h=-2 -c:v:2 libx264 -b:v:2 900k -c:a:2 aac -b:a:2 96k -filter:v:3 scale=w=640:h=-2 -c:v:3 libx264 -b:v:3 600k -c:a:3 aac -b:a:3 96k -map 0:v:0 -map 0:a:0 -map 0:v:0 -map 0:a:0 -map 0:v:0 -map 0:a:0 -map 0:v:0 -map 0:a:0 -f hls -hls_time 2 -hls_playlist_type vod -hls_segment_filename /tmp/v%v/segment%d.ts -master_pl_name master.m3u8 -var_stream_map "v:0,a:0 v:1,a:1 v:2,a:2 v:3,a:3" /tmp/v%v/playlist.m3u8
+     */
+    private ProcessBuilder createFFMPEGCommands(Path tempDir, Path rawVideoPath) {
+        // FFmpeg komutlarını oluşturacak metot
 
         List<String> cmd = new ArrayList<>();
+        // FFmpeg komutlarını sırayla eklemek için liste oluşturur
 
         cmd.add("ffmpeg");
+        // Çalıştırılacak program: ffmpeg
 
         cmd.add("-i");
+        // Input parametresi
+
         cmd.add(rawVideoPath.toString());
+        // Input video dosyasının yolunu ekler
 
         cmd.add("-g");
+        // GOP (Group of Pictures) uzunluğu parametresi
+
         cmd.add("48");
+        // Her 48 frame’de bir keyframe koy
+
         cmd.add("-keyint_min");
+        // Minimum keyframe aralığı parametresi
+
         cmd.add("48");
+        // Minimum keyframe aralığı da 48 frame olsun
+
         cmd.add("-force_key_frames");
+        // Zorla keyframe ekleme parametresi
+
         cmd.add("expr:gte(t,n_forced*2)");
+        // Her 2 saniyede bir keyframe koy (HLS segmentleri düzgün kesilsin)
 
         this.addQuality(cmd, 0, 1920, "3000k", "128k");
+        // 1. kalite: 1920px genişlik, video 3000k bitrate, audio 128k
+
         this.addQuality(cmd, 1, 1280, "1800k", "128k");
+        // 2. kalite: 1280px genişlik, video 1800k bitrate, audio 128k
+
         this.addQuality(cmd, 2, 854, "900k", "96k");
+        // 3. kalite: 854px genişlik, video 900k bitrate, audio 96k
+
         this.addQuality(cmd, 3, 640, "600k", "96k");
+        // 4. kalite: 640px genişlik, video 600k bitrate, audio 96k
 
         for (int i = 0; i < 4; i++) {
+            // Her kalite için video ve audio stream map edilecek
+
             cmd.add("-map");
+            // Stream seçme parametresi
+
             cmd.add("0:v:0");
+            // Input’un ilk video stream’ini seçer
+
             cmd.add("-map");
+            // Stream seçme parametresi
+
             cmd.add("0:a:0");
+            // Input’un ilk audio stream’ini seçer
         }
 
         cmd.add("-f");
+        // Output format parametresi
+
         cmd.add("hls");
+        // Çıktı formatı HLS olacak
+
         cmd.add("-hls_time");
+        // Segment süresi parametresi
+
         cmd.add("2");
+        // Her segment 2 saniye olacak
+
         cmd.add("-hls_playlist_type");
+        // Playlist tipi parametresi
+
         cmd.add("vod");
+        // Video on Demand playlist (video bitince kapanır)
 
         cmd.add("-hls_segment_filename");
+        // Segment dosya isimlendirme parametresi
+
         cmd.add(tempDir.toString() + "/v%v/segment%d.ts");
+        // Segmentler v0, v1, v2, v3 klasörlerine segment0.ts şeklinde yazılır
 
         cmd.add("-master_pl_name");
+        // Master playlist adı parametresi
+
         cmd.add("master.m3u8");
+        // Ana playlist dosyası master.m3u8 olacak
 
         cmd.add("-var_stream_map");
+        // Çoklu kalite stream mapping parametresi
+
         cmd.add("v:0,a:0 v:1,a:1 v:2,a:2 v:3,a:3");
+        // 4 video + 4 audio stream eşleştiriliyor
 
         cmd.add(tempDir + "/v%v/playlist.m3u8");
+        // Her kalite için ayrı playlist oluşturulur: v0/playlist.m3u8 vb.
 
         ProcessBuilder pb = new ProcessBuilder(cmd);
+        // Komut listesinden ProcessBuilder oluşturur
 
         pb.redirectErrorStream(true);
+        // Error çıktısını da normal output içine yönlendirir
 
         return pb;
+        // ProcessBuilder nesnesini döndürür
     }
 
     private void addQuality(List<String> cmd, int index, int width, String videoBitrate, String audioBitrate) {
+        // Belirli bir kalite seviyesi ekleyen yardımcı metot
+
         cmd.add("-filter:v:" + index);
+        // Video stream için filter parametresi
+
         cmd.add("scale=w=" + width + ":h=-2");
+        // Videoyu belirtilen genişliğe ölçekler, yükseklik otomatik ayarlanır
+
         cmd.add("-c:v:" + index);
+        // Video codec parametresi
+
         cmd.add("libx264");
+        // Video codec olarak H.264 kullanılır
+
         cmd.add("-b:v:" + index);
+        // Video bitrate parametresi
+
         cmd.add(videoBitrate);
+        // Video bitrate değerini ekler (örn: 3000k)
+
         cmd.add("-c:a:" + index);
+        // Audio codec parametresi
+
         cmd.add("aac");
+        // Audio codec olarak AAC kullanılır
+
         cmd.add("-b:a:" + index);
+        // Audio bitrate parametresi
+
         cmd.add(audioBitrate);
+        // Audio bitrate değerini ekler (örn: 128k)
     }
 
 
