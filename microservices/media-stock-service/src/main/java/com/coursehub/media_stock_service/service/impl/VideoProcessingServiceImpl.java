@@ -4,14 +4,13 @@ import com.coursehub.commons.exceptions.*;
 import com.coursehub.commons.kafka.events.AddVideoToCourseEvent;
 import com.coursehub.commons.security.model.UserPrincipal;
 import com.coursehub.media_stock_service.client.CourseServiceClient;
+import com.coursehub.media_stock_service.dto.VideoMetaData;
 import com.coursehub.media_stock_service.enums.AllowedVideoMimeTypes;
 import com.coursehub.media_stock_service.publisher.KafkaPublisher;
+import com.coursehub.media_stock_service.service.MinioService;
 import com.coursehub.media_stock_service.service.VideoProcessingService;
-import io.minio.MinioClient;
-import io.minio.PutObjectArgs;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
@@ -29,17 +28,13 @@ import static java.lang.Boolean.TRUE;
 @RequiredArgsConstructor
 public class VideoProcessingServiceImpl implements VideoProcessingService {
 
-    private final MinioClient minioClient;
-    private final CourseServiceClient courseServiceClient;
-    private final KafkaPublisher kafkaPublisher;
-
-    private static final String FILE_SEPARATOR = "/";
     private static final String HLS_STREAM_TEMP_DIR_NAME = "hls_stream_";
     private static final String RAW_TEMP_FILE_PREFIX = "raw_upload_";
     private static final String RAW_TEMP_FILE_SUFFIX = ".tmp";
 
-    @Value("${minio.course-videos-bucket}")
-    private String courseVideosBucketName;
+    private final MinioService minioService;
+    private final CourseServiceClient courseServiceClient;
+    private final KafkaPublisher kafkaPublisher;
 
 
     @Override
@@ -57,9 +52,10 @@ public class VideoProcessingServiceImpl implements VideoProcessingService {
 
             if (exitCode == 0) {
                 String randomVideoName = this.generateRandomVideoName();
-                this.uploadToMinio(randomVideoName, principal, courseId, hlsTempDir);
                 double videoDuration = this.getVideoDuration(tempRawFile);
-                this.createAndPublishAddVideoToCourseEvent(randomVideoName, videoDuration, courseId, displayName);
+                VideoMetaData videoMetaData = new VideoMetaData(randomVideoName, displayName, principal.getId(), courseId, videoDuration);
+                minioService.uploadToMinio(videoMetaData, hlsTempDir);
+                this.createAndPublishAddVideoToCourseEvent(videoMetaData);
             }
             this.deleteTempFolder(hlsTempDir);
             Files.deleteIfExists(tempRawFile);
@@ -67,9 +63,6 @@ public class VideoProcessingServiceImpl implements VideoProcessingService {
         } catch (IOException e) {
             log.error("IO exception occured: {}", e.getMessage());
             throw new FileOperationException("IO exception occured");
-        } catch (InterruptedException e) {
-            log.error("Interrupt exception occured: {}", e.getMessage());
-            throw new FileOperationException("Interrupt exception occured");
         }
     }
 
@@ -115,19 +108,34 @@ public class VideoProcessingServiceImpl implements VideoProcessingService {
         }
     }
 
-    private Path createTempVideoFile(MultipartFile file) throws IOException {
-        Path tempRawFile = Files.createTempFile(RAW_TEMP_FILE_PREFIX, RAW_TEMP_FILE_SUFFIX);
-        file.transferTo(tempRawFile);
+    private Path createTempVideoFile(MultipartFile file) {
+        Path tempRawFile;
+        try {
+            tempRawFile = Files.createTempFile(RAW_TEMP_FILE_PREFIX, RAW_TEMP_FILE_SUFFIX);
+            file.transferTo(tempRawFile);
+        } catch (IOException e) {
+            log.error("IO exception occured during creating temp file or transferring raw video file to temp file : {}", e.getMessage());
+            throw new FileOperationException("An IO exception occured while creating raw video file");
+        }
         return tempRawFile;
     }
 
-    private int doProcessOnVideoFile(Path hlsTempDir, Path tempRawFile) throws InterruptedException, IOException {
+    private int doProcessOnVideoFile(Path hlsTempDir, Path tempRawFile) {
 
         ProcessBuilder pb = this.getProcessBuilder(hlsTempDir, tempRawFile);
 
-        Process process = pb.start();
+        Process process;
+        try {
+            process = pb.start();
+            return process.waitFor();
+        } catch (IOException e) {
+            log.error("IO exception occured during processing on raw video: {}", e.getMessage());
+            throw new RuntimeException(e);
 
-        return process.waitFor();
+        } catch (InterruptedException e) {
+            log.error("InterruptedException occured during processing on raw video: {}", e.getMessage());
+            throw new RuntimeException(e);
+        }
     }
 
     private ProcessBuilder getProcessBuilder(Path tempDir, Path rawVideoPath) {
@@ -197,66 +205,22 @@ public class VideoProcessingServiceImpl implements VideoProcessingService {
     }
 
 
-    private void createAndPublishAddVideoToCourseEvent(String randomVideoName, double videoDuration, String courseId, String displayName) {
+    private void createAndPublishAddVideoToCourseEvent(VideoMetaData videoMetaData) {
 
         AddVideoToCourseEvent event = AddVideoToCourseEvent.builder()
-                .videoPath(randomVideoName)
-                .videoDuration(videoDuration)
-                .courseId(courseId)
-                .displayName(displayName)
+                .videoPath(videoMetaData.randomVideoName())
+                .videoDuration(videoMetaData.videoDuration())
+                .courseId(videoMetaData.courseId())
+                .displayName(videoMetaData.displayName())
                 .build();
 
         kafkaPublisher.publishEvent(event);
-
     }
 
     private String generateRandomVideoName() {
         return UUID.randomUUID().toString();
     }
 
-    private void uploadToMinio(String randomVideoName, UserPrincipal principal, String courseId, Path tempDir) {
-
-        String basePath = principal.getId() + FILE_SEPARATOR + courseId + FILE_SEPARATOR + randomVideoName + FILE_SEPARATOR;
-
-        try (Stream<Path> pathStream = Files.walk(tempDir)) {
-
-            pathStream.filter(Files::isRegularFile).forEach(path -> {
-
-                        String objectName = basePath +
-                                tempDir.relativize(path).toString().replace("\\", FILE_SEPARATOR);
-
-                        try (InputStream is = Files.newInputStream(path)) {
-
-                            String fileName = path.getFileName().toString();
-
-                            String contentType = "video/MP2T";
-
-                            if (fileName.endsWith(".m3u8")) {
-                                contentType = "application/x-mpegURL";
-                            }
-
-                            PutObjectArgs build = PutObjectArgs.builder()
-                                    .bucket(courseVideosBucketName)
-                                    .object(objectName)
-                                    .contentType(contentType)
-                                    .stream(is, Files.size(path), -1)
-                                    .build();
-
-                            minioClient.putObject(build);
-
-                            log.info("Uploaded HLS chunk to MinIO: {}", objectName);
-
-                        } catch (Exception e) {
-                            log.error("MinIO upload error! Path: {}, ObjectName: {}, Error: {}", path, objectName, e.getMessage());
-                            throw new FileOperationException("An error ocurred during upload to minio: " + objectName, e);
-                        }
-
-                    }
-            );
-        } catch (IOException e) {
-            throw new FileOperationException("Failed to upload HLS file to MinIO", e);
-        }
-    }
 
     private void deleteTempFolder(Path folder) {
         try (Stream<Path> walk = Files.walk(folder)) {
