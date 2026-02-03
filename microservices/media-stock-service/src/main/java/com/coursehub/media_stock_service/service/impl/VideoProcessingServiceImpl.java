@@ -11,6 +11,7 @@ import com.coursehub.media_stock_service.service.MinioService;
 import com.coursehub.media_stock_service.service.VideoProcessingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
@@ -39,6 +40,7 @@ public class VideoProcessingServiceImpl implements VideoProcessingService {
 
     @Override
     public void uploadVideoFile(MultipartFile file, String courseId, String displayName, UserPrincipal principal) {
+
         this.validateCourseOwner(courseId, principal.getId());
         this.validateVideoFile(file);
 
@@ -46,14 +48,14 @@ public class VideoProcessingServiceImpl implements VideoProcessingService {
 
             Path hlsTempDir = Files.createTempDirectory(HLS_STREAM_TEMP_DIR_NAME);
 
-            Path tempRawFile = createTempVideoFile(file);
+            Path tempRawFilePath = createTempVideoFile(file);
 
-            ProcessBuilder process = createFFMPEGCommands(hlsTempDir, tempRawFile);
+            ProcessBuilder process = createFFMPEGCommands(hlsTempDir, tempRawFilePath);
 
-            handleProcessBuilder(process);
+            doProcessOnRawVideoFile(process);
 
             String randomVideoName = this.generateRandomVideoName();
-            double videoDuration = this.getVideoDuration(tempRawFile);
+            double videoDuration = this.getVideoDuration(tempRawFilePath);
 
             VideoMetaData videoMetaData = new VideoMetaData(randomVideoName, displayName, principal.getId(), courseId, videoDuration);
 
@@ -61,7 +63,7 @@ public class VideoProcessingServiceImpl implements VideoProcessingService {
             createAndPublishAddVideoToCourseEvent(videoMetaData);
 
             deleteTempFolder(hlsTempDir);
-            Files.deleteIfExists(tempRawFile);
+            Files.deleteIfExists(tempRawFilePath);
 
         } catch (IOException e) {
             log.error("IO exception occured: {}", e.getMessage());
@@ -124,7 +126,7 @@ public class VideoProcessingServiceImpl implements VideoProcessingService {
     }
 
 
-    private void handleProcessBuilder(ProcessBuilder processBuilder) {
+    private void doProcessOnRawVideoFile(ProcessBuilder processBuilder) {
         try {
             Process process = processBuilder.start();
 
