@@ -43,31 +43,32 @@ public class VideoProcessingServiceImpl implements VideoProcessingService {
         this.validateCourseOwner(courseId, principal.getId());
         this.validateVideoFile(file);
 
-        Path hlsTempDir = null;
-        Path tempRawFilePath = null;
+        Path hlsTempFolder = null;
+        Path tempRawFile = null;
 
         try {
 
-            hlsTempDir = createFolderDir();
+            hlsTempFolder = createFolderDir();
 
-            tempRawFilePath = createTempVideoFile(file);
+            tempRawFile = createTempVideoFile(file);
 
-            ProcessBuilder process = createFFMPEGCommands(hlsTempDir, tempRawFilePath);
+            ProcessBuilder process = createFFMPEGCommands(hlsTempFolder, tempRawFile);
 
             doProcessOnRawVideoFile(process);
 
             String randomVideoName = this.generateRandomVideoName();
-            double videoDuration = this.getVideoDuration(tempRawFilePath);
+            double videoDuration = this.getVideoDuration(tempRawFile);
 
             VideoMetaData videoMetaData = new VideoMetaData(randomVideoName, displayName, principal.getId(), courseId, videoDuration);
 
-            minioService.uploadToMinio(videoMetaData, hlsTempDir);
+            minioService.uploadToMinio(videoMetaData, hlsTempFolder);
 
             createAndPublishAddVideoToCourseEvent(videoMetaData);
 
         } finally {
-            deleteTempFolder(hlsTempDir);
-            deleteTempRawVideoFile(tempRawFilePath);
+            //TODO: what if upload to minio failed. Is it sence teleding hlsTempFolder?;
+            deleteHlsTempFolder(hlsTempFolder);
+            deleteTempRawVideoFile(tempRawFile);
         }
     }
 
@@ -273,7 +274,7 @@ public class VideoProcessingServiceImpl implements VideoProcessingService {
     }
 
 
-    private void deleteTempFolder(Path folder) {
+    private void deleteHlsTempFolder(Path folder) {
         if (folder == null) {
             return;
         }
