@@ -46,18 +46,21 @@ public class VideoProcessingServiceImpl implements VideoProcessingService {
 
             Path hlsTempDir = Files.createTempDirectory(HLS_STREAM_TEMP_DIR_NAME);
 
-            Path tempRawFile = this.createTempVideoFile(file);
+            Path tempRawFile = createTempVideoFile(file);
 
-            int exitCode = this.doProcessOnVideoFile(hlsTempDir, tempRawFile);
+            ProcessBuilder process = createFFMPEGCommands(hlsTempDir, tempRawFile);
 
-            if (exitCode == 0) {
-                String randomVideoName = this.generateRandomVideoName();
-                double videoDuration = this.getVideoDuration(tempRawFile);
-                VideoMetaData videoMetaData = new VideoMetaData(randomVideoName, displayName, principal.getId(), courseId, videoDuration);
-                minioService.uploadToMinio(videoMetaData, hlsTempDir);
-                this.createAndPublishAddVideoToCourseEvent(videoMetaData);
-            }
-            this.deleteTempFolder(hlsTempDir);
+            handleProcessBuilder(process);
+
+            String randomVideoName = this.generateRandomVideoName();
+            double videoDuration = this.getVideoDuration(tempRawFile);
+
+            VideoMetaData videoMetaData = new VideoMetaData(randomVideoName, displayName, principal.getId(), courseId, videoDuration);
+
+            minioService.uploadToMinio(videoMetaData, hlsTempDir);
+            createAndPublishAddVideoToCourseEvent(videoMetaData);
+
+            deleteTempFolder(hlsTempDir);
             Files.deleteIfExists(tempRawFile);
 
         } catch (IOException e) {
@@ -120,17 +123,19 @@ public class VideoProcessingServiceImpl implements VideoProcessingService {
         return tempRawFile;
     }
 
-    private int doProcessOnVideoFile(Path hlsTempDir, Path tempRawFile) {
 
+    private void handleProcessBuilder(ProcessBuilder processBuilder) {
         try {
-            ProcessBuilder pb = createFFMPEGCommands(hlsTempDir, tempRawFile);
-
-            Process process = pb.start();
+            Process process = processBuilder.start();
 
             consumeProcessLogs(process);
 
-            return process.waitFor();
+            int exitCode = process.waitFor();
 
+            if (exitCode != 0) {
+                log.error("FFMPEG command failed with exit code {}", exitCode);
+                throw new RuntimeException();
+            }
         } catch (IOException e) {
             log.error("IO exception occured during processing on raw video: {}", e.getMessage());
             throw new RuntimeException();
