@@ -39,6 +39,8 @@ public class GlobalExceptionHandler {
 
     }
 
+
+
     @ExceptionHandler(CustomFeignException.class)
     public ResponseEntity<GlobalExceptionMessage> handle(CustomFeignException ex, HttpServletRequest request) {
 
@@ -66,7 +68,18 @@ public class GlobalExceptionHandler {
             return status(SERVICE_UNAVAILABLE).body(message);
         }
     }
+    @ExceptionHandler(feign.RetryableException.class)
+    public ResponseEntity<GlobalExceptionMessage> handle(feign.RetryableException exception,
+                                                         HttpServletRequest request) {
 
+        GlobalExceptionMessage body = createExceptionBody(
+                SERVICE_UNAVAILABLE,
+                exception.getMessage(),
+                request.getRequestURI()
+        );
+
+        return new ResponseEntity<>(body, FORBIDDEN);
+    }
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<GlobalExceptionMessage> handle(AccessDeniedException exception,
                                                          HttpServletRequest request) {

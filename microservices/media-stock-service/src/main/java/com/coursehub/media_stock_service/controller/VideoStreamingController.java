@@ -1,7 +1,8 @@
 package com.coursehub.media_stock_service.controller;
 
 import com.coursehub.commons.security.model.UserPrincipal;
-import com.coursehub.media_stock_service.service.VideoService;
+import com.coursehub.media_stock_service.service.VideoProcessingService;
+import com.coursehub.media_stock_service.service.VideoStreamingService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -18,21 +19,9 @@ import static org.springframework.http.ResponseEntity.status;
 @RestController
 @RequestMapping("${media-stock-service.video-base-url}")
 @RequiredArgsConstructor
-public class VideoController {
+public class VideoStreamingController {
 
-    private final VideoService videoService;
-
-    @PostMapping(value = "/upload", consumes = MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Void> uploadVideoFile(@RequestParam("file") MultipartFile file,
-                                                @RequestParam("courseId") String courseId,
-                                                @RequestParam("displayName") String displayName,
-                                                @AuthenticationPrincipal UserPrincipal principal
-    ) {
-
-        videoService.uploadVideoFile(file, courseId, displayName, principal);
-
-        return status(CREATED).build();
-    }
+    private final VideoStreamingService videoStreamingService;
 
 
     @GetMapping("/stream/{creatorId}/{courseId}/{videoPath}/**")
@@ -44,7 +33,7 @@ public class VideoController {
             HttpServletRequest request,
             HttpServletResponse response) {
 
-        videoService.streamVideo(principal, creatorId, courseId, videoPath, request, response);
+        videoStreamingService.streamVideo(principal, creatorId, courseId, videoPath, request, response);
         return status(OK).build();
     }
 
