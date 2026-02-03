@@ -11,7 +11,6 @@ import com.coursehub.media_stock_service.service.MinioService;
 import com.coursehub.media_stock_service.service.VideoProcessingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
@@ -44,11 +43,14 @@ public class VideoProcessingServiceImpl implements VideoProcessingService {
         this.validateCourseOwner(courseId, principal.getId());
         this.validateVideoFile(file);
 
+        Path hlsTempDir = null;
+        Path tempRawFilePath = null;
+
         try {
 
-            Path hlsTempDir = Files.createTempDirectory(HLS_STREAM_TEMP_DIR_NAME);
+            hlsTempDir = createFolderDir();
 
-            Path tempRawFilePath = createTempVideoFile(file);
+            tempRawFilePath = createTempVideoFile(file);
 
             ProcessBuilder process = createFFMPEGCommands(hlsTempDir, tempRawFilePath);
 
@@ -60,16 +62,24 @@ public class VideoProcessingServiceImpl implements VideoProcessingService {
             VideoMetaData videoMetaData = new VideoMetaData(randomVideoName, displayName, principal.getId(), courseId, videoDuration);
 
             minioService.uploadToMinio(videoMetaData, hlsTempDir);
+
             createAndPublishAddVideoToCourseEvent(videoMetaData);
 
+        } finally {
             deleteTempFolder(hlsTempDir);
-            Files.deleteIfExists(tempRawFilePath);
-
-        } catch (IOException e) {
-            log.error("IO exception occured: {}", e.getMessage());
-            throw new FileOperationException("IO exception occured");
+            deleteTempRawVideoFile(tempRawFilePath);
         }
     }
+
+    private void deleteTempRawVideoFile(Path tempRawFilePath) {
+        if (tempRawFilePath == null) return;
+        try {
+            Files.deleteIfExists(tempRawFilePath);
+        } catch (IOException e) {
+            log.error("IO exception occured during deletion of temp raw file: {}", e.getMessage());
+        }
+    }
+
 
     private void validateCourseOwner(String courseId, String userId) {
         Boolean isUserCourseOwner = courseServiceClient
@@ -111,6 +121,17 @@ public class VideoProcessingServiceImpl implements VideoProcessingService {
         if (!isValidVideoMimeType) {
             throw new InvalidFileFormatException("Invalid mime type: " + mimeType);
         }
+    }
+
+    private Path createFolderDir() {
+        Path folderDir;
+        try {
+            folderDir = Files.createTempDirectory(HLS_STREAM_TEMP_DIR_NAME);
+        } catch (IOException e) {
+            log.error(" An IO Exception oocurred creating folder {}", e.getMessage());
+            throw new RuntimeException();
+        }
+        return folderDir;
     }
 
     private Path createTempVideoFile(MultipartFile file) {
@@ -253,6 +274,10 @@ public class VideoProcessingServiceImpl implements VideoProcessingService {
 
 
     private void deleteTempFolder(Path folder) {
+        if (folder == null) {
+            return;
+        }
+
         try (Stream<Path> walk = Files.walk(folder)) {
             walk.sorted(Comparator.reverseOrder())
                     .forEach(path -> {
