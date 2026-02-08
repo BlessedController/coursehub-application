@@ -36,42 +36,34 @@ public class VideoProcessingServiceImpl implements VideoProcessingService {
     private final CourseServiceClient courseServiceClient;
     private final KafkaPublisher kafkaPublisher;
 
-
     @Override
     public void uploadVideoFile(MultipartFile file, String courseId, String displayName, UserPrincipal principal) {
 
         this.validateCourseOwner(courseId, principal.getId());
+
         this.validateVideoFile(file);
 
-        Path hlsTempFolder = null;
-        Path tempRawFile = null;
+        Path hlsTempFolder = createFolderDir();
 
-        try {
+        Path tempRawFile = createTempVideoFile(file);
 
-            hlsTempFolder = createFolderDir();
+        ProcessBuilder process = createFFMPEGCommands(hlsTempFolder, tempRawFile);
 
-            tempRawFile = createTempVideoFile(file);
+        doProcessOnRawVideoFile(process);
 
-            ProcessBuilder process = createFFMPEGCommands(hlsTempFolder, tempRawFile);
+        String randomVideoName = this.generateRandomVideoName();
+        double videoDuration = this.getVideoDuration(tempRawFile);
 
-            doProcessOnRawVideoFile(process);
+        VideoMetaData videoMetaData = new VideoMetaData(randomVideoName, displayName, principal.getId(), courseId, videoDuration);
 
-            String randomVideoName = this.generateRandomVideoName();
-            double videoDuration = this.getVideoDuration(tempRawFile);
+        minioService.uploadToMinio(videoMetaData, hlsTempFolder);
 
-            VideoMetaData videoMetaData = new VideoMetaData(randomVideoName, displayName, principal.getId(), courseId, videoDuration);
+        createAndPublishAddVideoToCourseEvent(videoMetaData);
 
-            minioService.uploadToMinio(videoMetaData, hlsTempFolder);
-
-            createAndPublishAddVideoToCourseEvent(videoMetaData);
-
-        } finally {
-            //TODO: what if upload to minio failed. Is it sence teleding hlsTempFolder?;
-            deleteHlsTempFolder(hlsTempFolder);
-            deleteTempRawVideoFile(tempRawFile);
-        }
+        deleteHlsTempFolder(hlsTempFolder);
+        deleteTempRawVideoFile(tempRawFile);
     }
-
+    
     private void deleteTempRawVideoFile(Path tempRawFilePath) {
         if (tempRawFilePath == null) return;
         try {
