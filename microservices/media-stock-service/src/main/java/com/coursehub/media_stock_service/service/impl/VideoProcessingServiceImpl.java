@@ -50,11 +50,8 @@ public class VideoProcessingServiceImpl implements VideoProcessingService {
         ProcessBuilder process = createFFMPEGCommands(hlsTempFolder, tempRawFile);
 
         doProcessOnRawVideoFile(process);
-
-        String randomVideoName = this.generateRandomVideoName();
-        double videoDuration = this.getVideoDuration(tempRawFile);
-
-        VideoMetaData videoMetaData = new VideoMetaData(randomVideoName, displayName, principal.getId(), courseId, videoDuration);
+        
+        VideoMetaData videoMetaData =  createVideoMetaData(tempRawFile, displayName, principal.getId(), courseId);
 
         minioService.uploadToMinio(videoMetaData, hlsTempFolder);
 
@@ -63,7 +60,11 @@ public class VideoProcessingServiceImpl implements VideoProcessingService {
         deleteHlsTempFolder(hlsTempFolder);
         deleteTempRawVideoFile(tempRawFile);
     }
-    
+    private VideoMetaData createVideoMetaData(Path tempRawFile, String displayName, String principalId, String courseId) {
+        String randomVideoName = generateRandomVideoName();
+        double videoDuration = getVideoDuration(tempRawFile);
+        return new VideoMetaData(randomVideoName, displayName, principalId, courseId, videoDuration);
+    }
     private void deleteTempRawVideoFile(Path tempRawFilePath) {
         if (tempRawFilePath == null) return;
         try {
