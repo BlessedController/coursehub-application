@@ -50,7 +50,7 @@ public class VideoProcessingServiceImpl implements VideoProcessingService {
         ProcessBuilder process = createFFMPEGCommands(hlsTempFolder, tempRawFile);
 
         doProcessOnRawVideoFile(process);
-        
+
         VideoMetaData videoMetaData =  createVideoMetaData(tempRawFile, displayName, principal.getId(), courseId);
 
         minioService.uploadToMinio(videoMetaData, hlsTempFolder);
